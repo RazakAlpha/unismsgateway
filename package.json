@@ -21,6 +21,6 @@
   },
   "dependencies": {
     "hubtel-sms-extended": "^1.0.2",
-    "routemobilesms": "^1.0.3"
+    "routemobilesms": "^1.0.4"
   }
 }
