@@ -53,7 +53,7 @@ const testSms = async function(){
 
 ## supported bulk sms gateways
 
-Hubtel bulk sms (Ghana) usinghubtel-sms-extended
+Hubtel bulk sms (Ghana) using hubtel-sms-extended
 routeMobile sms (India) using routemobilesms
 
 
@@ -62,7 +62,7 @@ routeMobile sms (India) using routemobilesms
 
 - Additional browser support
 
-- Add more thirdparty sms integrations
+- Add more third party sms integrations
 
 
 ## License
