@@ -17,7 +17,12 @@ export class smsPlatform{
     init(){
         if (this._settings.platformId === 'route'){
             // this._sms = routesms;
-            this._sms = new routeSms({host:'rslr.connectbind.com', username:'nety-dntc', password: '@Alpha12', protocol: 'http', port: 8080});
+            this._sms = new routeSms({
+                host:this._settings.param.host, 
+                username: this._settings.param.username, 
+                password: this._settings.param.password, 
+                protocol: 'http', 
+                port: 8080});
             // this._sms = routeSms;
             // console.log(this._sms, this._sms.connection)  
             // this._sms.connection = this._settings.param;
