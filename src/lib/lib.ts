@@ -11,3 +11,7 @@ export function init(settings: IgatewaySettings) {
 export function getSmsPlatform() {
     return smsplatform
 }
+
+export function quickSend(param: {From: string, To: number, Content: string, Type?: number}, callback?: Function) {
+    return smsplatform.quickSend(param, callback)
+}

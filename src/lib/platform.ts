@@ -1,6 +1,7 @@
 // const routesms = require('routesms')
 import { HubtelSms } from 'hubtel-sms-extended';
 import {routeSms} from 'routemobilesms'
+import * as nestsms from 'nestsms'
 
 // routeSms.engine
 
@@ -23,6 +24,16 @@ export class smsPlatform{
         }else if(this._settings.platformId === 'hubtel'){
             // console.log(this._settings)
             this._sms = new HubtelSms({clientId: this._settings.param.clientId, clientSecret: this._settings.param.clientSecret})
+        
+        }else if(this._settings.platformId === 'nest'){
+            // console.log(this._settings)
+            this._sms = nestsms.init(
+                {
+                    host: this._settings.param.host,
+                    version: this._settings.param.version,
+                    authModel: this._settings.param.authModel
+                }
+                )
         }
 
         // console.log({sms: this._sms})
@@ -37,6 +48,9 @@ export class smsPlatform{
             return this._sms.sendAsync({From: param.From, To: param.To, Content: param.Content})
             // return this._sms.send(callback);
         } else if(this._settings.platformId === 'hubtel') {
+            return this._sms.quickSend(param);
+        
+        }else if(this._settings.platformId === 'nest') {
             return this._sms.quickSend(param);
         }else {
             throw new Error("Platform ID not recognised");
@@ -54,11 +68,26 @@ export interface IgatewaySettings{
 }
 
 export interface IgatewayParam{
-    host?: string;
+    host: string;
     port?: number;
     username?: string;
     password?: string;
     clientId?: string;
     clientSecret?: string;
+    version: string;
+    authModel: AuthModel;
 
+
+}
+
+export interface AuthModel {
+    type: AuthTypes;
+    username?: string;
+    password?: string;
+    key?: string;
+}
+
+export enum AuthTypes {
+    factor = "factor",
+    key ="key"
 }

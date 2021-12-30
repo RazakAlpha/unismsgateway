@@ -55,8 +55,7 @@ const testSms = async function(){
 
 Hubtel bulk sms (Ghana) using hubtel-sms-extended
 routeMobile sms (India) using routemobilesms
-
-
+Nest SMS(Ghana) using nestsms
 
 ## Roadmap
 
