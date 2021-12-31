@@ -2,6 +2,7 @@
 import { HubtelSms } from 'hubtel-sms-extended';
 import {routeSms} from 'routemobilesms'
 import * as nestsms from 'nestsms'
+import { throws } from 'assert';
 
 // routeSms.engine
 
@@ -62,6 +63,18 @@ export class smsPlatform{
             
         }
     }
+    
+    sendPersonalized(body: IQuickSendPersonalized) {
+        if(this._settings.platformId !== 'nest'){
+            throw new Error("Specified platform does not support personalisation");
+        } 
+        
+        return this._sms.sendPersonalized(body)
+
+
+
+
+    }
 
 }
 
@@ -95,4 +108,23 @@ export interface AuthModel {
 export enum AuthTypes {
     factor = "factor",
     key ="key"
+}
+
+
+export interface IQuickSendPersonalized {
+    From: string;
+    Content: string;
+    Type: MessageTypes
+    To: IPersonalizedDestination | IPersonalizedDestination[]
+}
+
+export interface IPersonalizedDestination {
+    to: number;
+    values: (string|number)[]
+
+}
+
+export enum MessageTypes{
+    Text,
+    flash
 }

@@ -1,4 +1,4 @@
-import {smsPlatform, IgatewaySettings, IgatewayParam} from './platform'
+import {smsPlatform, IgatewaySettings, IgatewayParam, IQuickSendPersonalized} from './platform'
 let smsplatform: smsPlatform
 
 export function init(settings: IgatewaySettings) {
@@ -14,4 +14,8 @@ export function getSmsPlatform() {
 
 export function quickSend(param: {From: string, To: number, Content: string, Type?: number}, callback?: Function) {
     return smsplatform.quickSend(param, callback)
+}
+
+export function sendPersonalized(body: IQuickSendPersonalized) {
+    return smsplatform.sendPersonalized(body)
 }
