@@ -1,10 +1,13 @@
 {
   "name": "unismsgateway",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A unified sms gateway library that brings access to multiple sms gateways under a single API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "repository": {"type": "git", "url": "https://github.com/RazakAlpha/unismsgateway"},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RazakAlpha/unismsgateway"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
