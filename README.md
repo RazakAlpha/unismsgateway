@@ -50,6 +50,29 @@ const testSms = async function(){
 
 ```
 
+### SEND PERSONALIZED MESSAGE
+```javascript
+
+const testSms = async function(){
+  try{
+    // const gateway = unisms.getSmsPlatform();
+     await gateway.sendPersonalized({From:'xxxxx', 
+                                    To: {to: 233XXXXXXXXX, values: ['Alpha', 65332]},  // [{to: 233XXXXXXXXX, values: ['Alpha', 65332]}, {to: 211XXXXXXXXX, values: ['James', 2000]}, ]
+                                    Content: 'Testing unisms', 
+                                    Type: 0}).then(r => {
+      console.log(r)
+    }).catch(err => {
+      console.log(err)
+    })
+  }catch(err){
+    console.log(err)
+  }
+
+
+}
+
+```
+
 
 ## supported bulk sms gateways
 
