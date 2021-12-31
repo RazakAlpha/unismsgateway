@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "prepublish": "npm run build",
-    "publish":"git push --tags && npm publish"
+    "publish": "git push --tags && npm publish"
   },
   "files": [
     "dist/**/*"
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "hubtel-sms-extended": "^1.0.2",
-    "nestsms": "^1.1.2",
+    "nestsms": "^1.2.1",
     "routemobilesms": "^1.0.4"
   }
 }
