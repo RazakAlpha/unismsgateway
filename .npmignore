@@ -1,0 +1,30 @@
+# Source files
+src/
+*.ts
+tsconfig.json
+
+# Development files
+node_modules/
+.git/
+.gitignore
+.npmignore
+
+# Documentation
+AGENTS.md
+*.md
+!README.md
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

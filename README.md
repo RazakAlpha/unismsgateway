@@ -1,4 +1,3 @@
-
 # Unified Sms Gateway
 
 Most of the time a single project relies on multiple sms Gateway so it can switched if one goes off.
@@ -10,62 +9,176 @@ which means you only does one implementation in it works for all supported sms g
 you just have select or switch your sms platform and your code still works fine like nothing has changed
 
 
+## Installation
+
+```bash
+npm install unismsgateway
+```
+
+## Supported Gateways
+
+| Platform ID | Provider | Required Params |
+|-------------|----------|-----------------|
+| `route` | routeMobile | username, password, host |
+| `hubtel` | Hubtel SMS (Ghana) | clientId, clientSecret |
+| `nest` | SMSOnlineGH / smsonlinegh | apiKey |
+
 ## Usage/Examples
+
+### Initialize with Platform
 
 ```javascript
 const unisms = require('unismsgateway')
 
-const param = { clientId, // hubtel sms client Id **optional
-                clientSecret, // hubtel sms client secret ** optional
-                username, // username for route sms
-                password, // password for route sms
-                host,  // host address eg. rslr.connectbind.....
-                port} // port defaults to 8080
+// For routeMobile
+const routeGateway = unisms.init({
+    platformId: 'route',
+    param: {
+        username: 'your-username',
+        password: 'your-password',
+        host: 'rslr.connectbind.com',
+        protocol: 'http',
+        port: 8080
+    }
+})
 
-//init with prefered platform id. route => routemobile, hubtel => hubtel sms
-// more sms services will be added or supported in the future
-const gateway  = unisms.init({platformId:'route', param})
+// For Hubtel
+const hubtelGateway = unisms.init({
+    platformId: 'hubtel',
+    param: {
+        clientId: 'your-client-id',
+        clientSecret: 'your-client-secret'
+    }
+})
 
+// For SMSOnlineGH (nest)
+const nestGateway = unisms.init({
+    platformId: 'nest',
+    param: {
+        apiKey: 'your-api-key',
+        // Optional: host, protocol (defaults to api.smsonlinegh.com, https)
+    }
+})
 ```
 
-### SEND MESSAGE
+### Send SMS Message
+
 ```javascript
+const unisms = require('unismsgateway')
 
-const testSms = async function(){
-  try{
-    // const gateway = unisms.getSmsPlatform();
-     await gateway.quickSend({From:'xxxxx', To: xxxxxxxx, Content: 'Testing unisms', Type: 0}, (response)=>{
-      console.log(response)
-    }).then(r => {
-      console.log(r)
-    }).catch(err => {
-      console.log(err)
-    })
-  }catch(err){
-    console.log(err)
-  }
+// Initialize gateway
+const gateway = unisms.init({
+    platformId: 'nest',
+    param: {
+        apiKey: 'your-api-key'
+    }
+})
 
-
+// Send message
+async function sendSms() {
+    try {
+        const result = await gateway.quickSend({
+            From: 'SenderName',
+            To: '233XXXXXXXXX',  // recipient number
+            Content: 'Hello from unismsgateway!',
+            Type: 0  // optional, defaults to 0
+        })
+        
+        if (result.success) {
+            console.log('Message sent successfully:', result.messageId)
+        } else {
+            console.error('Failed to send:', result.error)
+        }
+    } catch (err) {
+        console.error('Error:', err)
+    }
 }
 
+sendSms()
 ```
 
+### With Callback
 
-## supported bulk sms gateways
+```javascript
+gateway.quickSend({
+    From: 'SenderName',
+    To: '233XXXXXXXXX',
+    Content: 'Test message'
+}, (response) => {
+    console.log('Response:', response)
+})
+```
 
-Hubtel bulk sms (Ghana) using hubtel-sms-extended
-routeMobile sms (India) using routemobilesms
+### Check Balance (SMSOnlineGH/nest only)
 
+```javascript
+const gateway = unisms.init({
+    platformId: 'nest',
+    param: { apiKey: 'your-api-key' }
+})
 
+// Only available for nest platform
+if (gateway.getGateway) {
+    const nestGateway = gateway.getGateway()
+    const balance = await nestGateway.getBalance()
+    console.log('Balance:', balance)
+}
+```
 
-## Roadmap
+### Reset Gateway Instance
 
-- Additional browser support
+```javascript
+// Clear the current gateway instance
+unisms.reset()
 
-- Add more third party sms integrations
+// Initialize with new platform
+const newGateway = unisms.init({
+    platformId: 'hubtel',
+    param: {
+        clientId: 'new-client-id',
+        clientSecret: 'new-secret'
+    }
+})
+```
 
+## API Reference
+
+### `init(settings: IgatewaySettings): smsPlatform`
+
+Initialize the SMS gateway with your platform configuration.
+
+**Parameters:**
+- `platformId`: `'route'` | `'hubtel'` | `'nest'`
+- `param`: Platform-specific configuration object
+
+### `getSmsPlatform(): smsPlatform | null`
+
+Get the current gateway instance. Returns `null` if not initialized.
+
+### `reset(): void`
+
+Clear the current gateway instance.
+
+### `quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult>`
+
+Send an SMS message.
+
+**Parameters:**
+- `From`: Sender ID/name
+- `To`: Recipient phone number (string or number)
+- `Content`: Message content
+- `Type`: Optional message type (defaults to 0)
+
+**Returns:**
+```typescript
+{
+    success: boolean;
+    messageId?: string;
+    data?: any;
+    error?: string;
+}
+```
 
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
-

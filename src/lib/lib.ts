@@ -1,13 +1,35 @@
-import {smsPlatform, IgatewaySettings, IgatewayParam} from './platform'
-let smsplatform: smsPlatform
+import { 
+    smsPlatform, 
+    IgatewaySettings, 
+    IgatewayParam,
+    PlatformId,
+    QuickSendParams,
+    SendResult,
+    ISmsGateway
+} from './platform';
 
-export function init(settings: IgatewaySettings) {
+let smsPlatformInstance: smsPlatform | null = null;
 
-    const smsPlatform_ = new smsPlatform(settings);
-    smsplatform = smsPlatform_;
-    return smsPlatform_.init();
+export function init(settings: IgatewaySettings): smsPlatform {
+    smsPlatformInstance = new smsPlatform(settings);
+    smsPlatformInstance.init();
+    return smsPlatformInstance;
 }
 
-export function getSmsPlatform() {
-    return smsplatform
+export function getSmsPlatform(): smsPlatform | null {
+    return smsPlatformInstance;
 }
+
+export function reset(): void {
+    smsPlatformInstance = null;
+}
+
+export {
+    smsPlatform,
+    IgatewaySettings,
+    IgatewayParam,
+    PlatformId,
+    QuickSendParams,
+    SendResult,
+    ISmsGateway
+};

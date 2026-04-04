@@ -1,24 +1,13 @@
-export declare class smsPlatform {
-    _settings: IgatewaySettings;
-    _sms: any;
+import { IgatewaySettings, IgatewayParam, ISmsGateway, QuickSendParams, SendResult } from './types';
+export * from './types';
+export declare class smsPlatform implements ISmsGateway {
+    private _settings;
+    private _gateway;
     constructor(settings: IgatewaySettings);
-    init(): this;
-    quickSend(param: {
-        From: string;
-        To: number;
-        Content: string;
-        Type?: number;
-    }, callback?: Function): any;
+    private validateSettings;
+    private createGateway;
+    init(): ISmsGateway;
+    quickSend(param: QuickSendParams, callback?: Function): Promise<SendResult>;
+    getGateway(): ISmsGateway;
 }
-export interface IgatewaySettings {
-    platformId: string;
-    param: IgatewayParam;
-}
-export interface IgatewayParam {
-    host?: string;
-    port?: number;
-    username?: string;
-    password?: string;
-    clientId?: string;
-    clientSecret?: string;
-}
+export { IgatewaySettings, IgatewayParam };

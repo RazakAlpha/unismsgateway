@@ -1,15 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSmsPlatform = exports.init = void 0;
+exports.smsPlatform = exports.reset = exports.getSmsPlatform = exports.init = void 0;
 const platform_1 = require("./platform");
-let smsplatform;
+Object.defineProperty(exports, "smsPlatform", { enumerable: true, get: function () { return platform_1.smsPlatform; } });
+let smsPlatformInstance = null;
 function init(settings) {
-    const smsPlatform_ = new platform_1.smsPlatform(settings);
-    smsplatform = smsPlatform_;
-    return smsPlatform_.init();
+    smsPlatformInstance = new platform_1.smsPlatform(settings);
+    smsPlatformInstance.init();
+    return smsPlatformInstance;
 }
 exports.init = init;
 function getSmsPlatform() {
-    return smsplatform;
+    return smsPlatformInstance;
 }
 exports.getSmsPlatform = getSmsPlatform;
+function reset() {
+    smsPlatformInstance = null;
+}
+exports.reset = reset;

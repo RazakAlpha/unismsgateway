@@ -1,64 +1,100 @@
-// const routesms = require('routesms')
 import { HubtelSms } from 'hubtel-sms-extended';
-import {routeSms} from 'routemobilesms'
+import { routeSms } from 'routemobilesms';
+import { NestSmsGateway } from './nest-gateway';
+import {
+    IgatewaySettings,
+    IgatewayParam,
+    PlatformId,
+    ISmsGateway,
+    QuickSendParams,
+    SendResult
+} from './types';
 
-// routeSms.engine
+export * from './types';
 
+const GATEWAY_CONFIGS: Record<PlatformId, { requiresApiKey?: boolean; requiresClientCredentials?: boolean; requiresUsernamePassword?: boolean }> = {
+    route: { requiresUsernamePassword: true },
+    hubtel: { requiresClientCredentials: true },
+    nest: { requiresApiKey: true }
+};
 
-export class smsPlatform{
-    _settings: IgatewaySettings
-    _sms: any;
+export class smsPlatform implements ISmsGateway {
+    private _settings: IgatewaySettings;
+    private _gateway: ISmsGateway;
 
-    constructor(settings: IgatewaySettings){
+    constructor(settings: IgatewaySettings) {
+        this.validateSettings(settings);
         this._settings = settings;
+        this._gateway = this.createGateway();
     }
 
-    init(){
-        if (this._settings.platformId === 'route'){
-            // this._sms = routesms;
-            this._sms = new routeSms({host:'rslr.connectbind.com', username:'nety-dntc', password: '@Alpha12', protocol: 'http', port: 8080});
-            // this._sms = routeSms;
-            // console.log(this._sms, this._sms.connection)  
-            // this._sms.connection = this._settings.param;
-        }else if(this._settings.platformId === 'hubtel'){
-            // console.log(this._settings)
-            this._sms = new HubtelSms({clientId: this._settings.param.clientId, clientSecret: this._settings.param.clientSecret})
+    private validateSettings(settings: IgatewaySettings): void {
+        const validPlatforms: PlatformId[] = ['route', 'hubtel', 'nest'];
+        if (!validPlatforms.includes(settings.platformId as PlatformId)) {
+            throw new Error(`Invalid platform ID. Supported platforms: ${validPlatforms.join(', ')}`);
         }
 
-        // console.log({sms: this._sms})
-   
+        const config = GATEWAY_CONFIGS[settings.platformId as PlatformId];
+        const param = settings.param;
+
+        if (config.requiresApiKey && !param.apiKey) {
+            throw new Error(`Platform '${settings.platformId}' requires 'apiKey' in param`);
+        }
+
+        if (config.requiresClientCredentials && (!param.clientId || !param.clientSecret)) {
+            throw new Error(`Platform '${settings.platformId}' requires 'clientId' and 'clientSecret' in param`);
+        }
+
+        if (config.requiresUsernamePassword && (!param.username || !param.password)) {
+            throw new Error(`Platform '${settings.platformId}' requires 'username' and 'password' in param`);
+        }
+    }
+
+    private createGateway(): ISmsGateway {
+        const { platformId, param } = this._settings;
+
+        switch (platformId) {
+            case 'route':
+                return new routeSms({
+                    host: param.host || 'rslr.connectbind.com',
+                    username: param.username!,
+                    password: param.password!,
+                    protocol: param.protocol || 'http',
+                    port: param.port || 8080
+                });
+
+            case 'hubtel':
+                return new HubtelSms({
+                    clientId: param.clientId!,
+                    clientSecret: param.clientSecret!
+                });
+
+            case 'nest':
+                return new NestSmsGateway({
+                    apiKey: param.apiKey!,
+                    host: param.host,
+                    protocol: param.protocol
+                });
+
+            default:
+                throw new Error(`Unsupported platform: ${platformId}`);
+        }
+    }
+
+    init(): ISmsGateway {
         return this;
     }
 
-
-    
-    quickSend(param: {From: string, To: number, Content: string, Type?: number}, callback?: Function) {
-        if(this._settings.platformId === 'route'){
-            return this._sms.sendAsync({From: param.From, To: param.To, Content: param.Content})
-            // return this._sms.send(callback);
-        } else if(this._settings.platformId === 'hubtel') {
-            return this._sms.quickSend(param);
-        }else {
-            throw new Error("Platform ID not recognised");
-            
+    quickSend(param: QuickSendParams, callback?: Function): Promise<SendResult> {
+        if (!this._gateway) {
+            throw new Error('Gateway not initialized. Call init() first.');
         }
+        return this._gateway.quickSend(param, callback);
     }
 
+    getGateway(): ISmsGateway {
+        return this._gateway;
+    }
 }
 
-
-
-export interface IgatewaySettings{
-    platformId: string;
-    param: IgatewayParam
-}
-
-export interface IgatewayParam{
-    host?: string;
-    port?: number;
-    username?: string;
-    password?: string;
-    clientId?: string;
-    clientSecret?: string;
-
-}
+export { IgatewaySettings, IgatewayParam };
