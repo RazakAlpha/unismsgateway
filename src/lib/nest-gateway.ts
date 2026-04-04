@@ -84,20 +84,31 @@ export class NestSmsGateway implements ISmsGateway {
 
     async quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult> {
         const endpoint = 'message/sms/send';
+        // SMSOnlineGH v5 expects: text, sender, destinations[] (see API docs — not from/to/content).
         const requestBody = {
-            from: params.From,
-            to: String(params.To),
-            content: params.Content,
-            type: params.Type || 0
+            text: params.Content,
+            type: params.Type || 0,
+            sender: params.From,
+            destinations: [String(params.To)]
         };
 
         try {
             const response = await this.makeRequest(endpoint, requestBody);
-            
+            const handshakeOk = Number(response.handshake?.id) === 0;
+            const data = response.data ?? null;
+            const batchId = data && typeof data === 'object' ? (data as { batch?: string }).batch : undefined;
+            const firstDest = data && typeof data === 'object'
+                ? (data as { destinations?: { id?: string }[] }).destinations?.[0]
+                : undefined;
+
             const result: SendResult = {
-                success: response.handshake?.id === 0,
-                data: response.data,
-                messageId: response.data?.messageId
+                success: handshakeOk,
+                data,
+                messageId: batchId || firstDest?.id,
+                error: handshakeOk
+                    ? undefined
+                    : (response.handshake?.label
+                        || `handshake id ${String(response.handshake?.id)}`)
             };
 
             if (callback) {

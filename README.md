@@ -307,6 +307,56 @@ gateway.quickSend(
 
 ---
 
+## Testing (live integration)
+
+There is no unit test suite in this package. For **manual integration checks** against real gateways, use the script in `scripts/test-live.ts`.
+
+**Setup**
+
+1. Clone the repo and install dependencies: `npm install`
+2. Copy `.env.example` to `.env` and fill in credentials for the platform you want to exercise
+3. Run:
+
+```bash
+npm test
+# same as:
+npm run test:live
+```
+
+**Selecting a platform**
+
+| Env variable | Description |
+|--------------|-------------|
+| `GATEWAY_PLATFORM` | One of `nest`, `hubtel`, or `route`. Required unless you use `TEST_ALL`. |
+| `TEST_ALL` | If set to `true`, runs tests for `nest`, `hubtel`, and `route` in sequence (each needs its env vars set). |
+
+**What runs**
+
+1. **Init** — Builds `param` from your `.env`, calls `init()`, and checks configuration validation.
+2. **Balance** — For `nest` and `hubtel` only, calls `getBalance()` when the adapter supports it. `route` skips this step.
+3. **Send** — **Opt-in.** By default no SMS is sent. Set `TEST_SEND=true` to call `quickSend()` with `TEST_FROM`, `TEST_TO`, and optional `TEST_CONTENT`.
+
+**Environment variables (live script)**
+
+Variables below match `.env.example` and `scripts/test-live.ts`.
+
+| Variable | Required when | Purpose |
+|----------|----------------|---------|
+| `GATEWAY_PLATFORM` | Unless `TEST_ALL=true` | `nest` \| `hubtel` \| `route` |
+| `TEST_ALL` | Optional | `true` to test all three platforms |
+| `NEST_API_KEY` | `nest` | SMSOnlineGH API key |
+| `NEST_HOST`, `NEST_PROTOCOL` | `nest` | Optional overrides |
+| `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET` | `hubtel` | Hubtel credentials |
+| `ROUTE_USERNAME`, `ROUTE_PASSWORD` | `route` | Route Mobile credentials |
+| `ROUTE_HOST`, `ROUTE_PORT`, `ROUTE_PROTOCOL` | `route` | Optional overrides |
+| `TEST_SEND` | To send SMS | Set to `true` to enable live send |
+| `TEST_FROM`, `TEST_TO` | When `TEST_SEND=true` | Sender and recipient |
+| `TEST_CONTENT` | When `TEST_SEND=true` | Message body (script has a default if omitted) |
+
+The script loads `.env` via `dotenv` (dev dependency). Exit code is `0` when all checks pass, non-zero if a step fails or no platform is selected.
+
+---
+
 ## API reference
 
 | Export | Description |

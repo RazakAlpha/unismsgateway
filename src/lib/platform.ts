@@ -1,11 +1,12 @@
-import { HubtelSms } from 'hubtel-sms-extended';
-import { routeSms } from 'routemobilesms';
 import { NestSmsGateway } from './nest-gateway';
+import { HubtelSmsGateway } from './hubtel-gateway';
+import { RouteSmsGateway } from './route-gateway';
 import {
     IgatewaySettings,
     IgatewayParam,
     PlatformId,
     ISmsGateway,
+    ISmsGatewayDelegate,
     QuickSendParams,
     SendResult
 } from './types';
@@ -20,7 +21,7 @@ const GATEWAY_CONFIGS: Record<PlatformId, { requiresApiKey?: boolean; requiresCl
 
 export class smsPlatform implements ISmsGateway {
     private _settings: IgatewaySettings;
-    private _gateway: ISmsGateway;
+    private _gateway: ISmsGatewayDelegate;
 
     constructor(settings: IgatewaySettings) {
         this.validateSettings(settings);
@@ -50,12 +51,12 @@ export class smsPlatform implements ISmsGateway {
         }
     }
 
-    private createGateway(): ISmsGateway {
+    private createGateway(): ISmsGatewayDelegate {
         const { platformId, param } = this._settings;
 
         switch (platformId) {
             case 'route':
-                return new routeSms({
+                return new RouteSmsGateway({
                     host: param.host || 'rslr.connectbind.com',
                     username: param.username!,
                     password: param.password!,
@@ -64,7 +65,7 @@ export class smsPlatform implements ISmsGateway {
                 });
 
             case 'hubtel':
-                return new HubtelSms({
+                return new HubtelSmsGateway({
                     clientId: param.clientId!,
                     clientSecret: param.clientSecret!
                 });
@@ -92,7 +93,7 @@ export class smsPlatform implements ISmsGateway {
         return this._gateway.quickSend(param, callback);
     }
 
-    getGateway(): ISmsGateway {
+    getGateway(): ISmsGatewayDelegate {
         return this._gateway;
     }
 }

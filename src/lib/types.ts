@@ -30,10 +30,14 @@ export interface IgatewaySettings {
     param: IgatewayParam;
 }
 
-export interface ISmsGateway {
-    init(): ISmsGateway;
+/** Send surface used by the facade; third-party SDKs may omit `init()`. */
+export interface ISmsGatewayDelegate {
     quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult>;
     getBalance?(): Promise<any>;
+}
+
+export interface ISmsGateway extends ISmsGatewayDelegate {
+    init(): ISmsGateway;
 }
 
 export interface NestSmsConfig {

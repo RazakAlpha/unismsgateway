@@ -10,14 +10,15 @@ This is a TypeScript library that provides a unified API for multiple SMS gatewa
 # Build TypeScript to JavaScript
 npm run build
 
-# Run tests (none configured)
+# Live integration test (requires .env — see .env.example and README.md)
 npm test
+# equivalent: npm run test:live
 
 # Install dependencies
 npm install
 ```
 
-**Single test execution**: No test framework is currently configured.
+**Tests**: `npm test` runs `scripts/test-live.ts` via `ts-node`. It is a manual integration runner (not Jest): loads `.env` with `dotenv`, validates init, optional `getBalance` for nest/hubtel, optional live send when `TEST_SEND=true`. There is no unit test framework; see README.md **Testing (live integration)** for env vars.
 
 ## Code Style Guidelines
 
@@ -76,8 +77,11 @@ src/
     platform.ts      # Core smsPlatform class and re-exports
     types.ts         # All TypeScript interfaces and types
     nest-gateway.ts  # SMSOnlineGH REST API implementation
+scripts/
+  test-live.ts       # Live integration test runner (npm test)
 dist/                # Compiled output (do not edit)
 typings.d.ts         # Module declarations for external packages
+.env.example         # Template for test-live credentials
 ```
 
 ### Key Types and Interfaces
@@ -160,9 +164,8 @@ export class NewSmsGateway implements ISmsGateway {
 ```
 
 ### Testing
-- No test framework configured
-- Manual testing via example code in README.md
-- Consider adding Jest for unit tests
+- **`npm test`** / **`npm run test:live`**: runs `scripts/test-live.ts` (needs `.env` from `.env.example`). See README.md **Testing (live integration)**.
+- No Jest or other unit test framework; optional future addition for mocked gateway tests.
 
 ### Publishing
 - `npm run prepublish` runs build before publish
