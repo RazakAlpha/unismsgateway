@@ -63,6 +63,11 @@ export class NestSmsGateway implements ISmsGateway {
                 port,
                 path: `/v5/${endpoint}`,
                 method: 'POST',
+                // Disable keep-alive connection pooling. Node's global agent reuses
+                // sockets across calls; when the server closes an idle socket server-side
+                // the next write (i.e. the request body in quickSend) gets ECONNABORTED.
+                // agent:false forces a fresh connection for every request.
+                agent: false,
                 headers: {
                     'Host': hostname,
                     'Content-Type': 'application/json',

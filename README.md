@@ -306,7 +306,7 @@ const gateway = unisms.init({
 | `protocol` | `'https'`             |
 
 
-Requests use `POST` to path `**/v5/<endpoint>`** (e.g. send: `message/sms/send`, balance: `account/balance`). Authorization header: `Authorization: key <apiKey>`.
+Requests use `POST` to path `**/v5/<endpoint>`** (e.g. send: `message/sms/send`, balance: `account/balance`). Authorization header: `Authorization: key <apiKey>`. Each request opens a fresh connection (keep-alive pooling is disabled) to prevent stale-socket errors in long-running processes.
 
 ```javascript
 const gateway = unisms.init({
@@ -455,6 +455,13 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 | `quickSend(params, callback?)` | `Promise<SendResult>` | Delegates to the active gateway.               |
 | `getGateway()`                 | `ISmsGateway`         | Underlying adapter (for nest: `getBalance()`). |
 
+
+---
+
+## Changelog
+
+### 1.5.0
+- **Fix (`nest`):** `quickSend` now reliably works in long-running processes (servers, workers). Node's global HTTP agent reuses keep-alive sockets across calls; when the provider closes an idle socket server-side, the next `quickSend` that writes a request body received `write ECONNABORTED` while `getBalance` (no body) appeared to work fine. Fixed by setting `agent: false` on each request so every call opens a fresh connection rather than reusing a potentially stale one from the pool.
 
 ---
 
