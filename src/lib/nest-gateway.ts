@@ -1,15 +1,25 @@
 import * as https from 'https';
 import * as http from 'http';
-import { 
-    ISmsGateway, 
-    QuickSendParams, 
-    SendResult, 
-    NestSmsConfig, 
-    NestSendResponse 
+import {
+    ISmsGateway,
+    QuickSendParams,
+    SendResult,
+    NestSmsConfig,
+    NestSendResponse
 } from './types';
 
 const DEFAULT_HOST = 'api.smsonlinegh.com';
 const DEFAULT_PROTOCOL = 'https';
+
+interface MakeRequestResult {
+    statusCode: number;
+    body: NestSendResponse;
+}
+
+interface HttpError extends Error {
+    statusCode?: number;
+    rawBody?: string;
+}
 
 export class NestSmsGateway implements ISmsGateway {
     private config: NestSmsConfig;
@@ -18,7 +28,8 @@ export class NestSmsGateway implements ISmsGateway {
         this.config = {
             host: config.host || DEFAULT_HOST,
             protocol: config.protocol || DEFAULT_PROTOCOL,
-            apiKey: config.apiKey
+            apiKey: config.apiKey,
+            debug: config.debug || false
         };
     }
 
@@ -26,31 +37,42 @@ export class NestSmsGateway implements ISmsGateway {
         return this;
     }
 
+    private log(...args: unknown[]): void {
+        if (this.config.debug) {
+            console.log('[unismsgateway:nest]', ...args);
+        }
+    }
+
     private async makeRequest(
-        endpoint: string, 
-        data?: any
-    ): Promise<NestSendResponse> {
+        endpoint: string,
+        data?: unknown
+    ): Promise<MakeRequestResult> {
         return new Promise((resolve, reject) => {
             const postData = data ? JSON.stringify(data) : '';
             const protocol = this.config.protocol || DEFAULT_PROTOCOL;
             const httpModule = protocol === 'https' ? https : http;
             const defaultPort = protocol === 'https' ? 443 : 80;
+            const host = this.config.host || DEFAULT_HOST;
+            const hostname = host.includes(':') ? host.split(':')[0] : host;
+            const port = host.includes(':')
+                ? parseInt(host.split(':')[1], 10)
+                : defaultPort;
 
             const options = {
-                hostname: this.config.host || DEFAULT_HOST,
-                port: this.config.host?.includes(':') 
-                    ? parseInt(this.config.host.split(':')[1]) 
-                    : defaultPort,
+                hostname,
+                port,
                 path: `/v5/${endpoint}`,
                 method: 'POST',
                 headers: {
-                    'Host': this.config.host || DEFAULT_HOST,
+                    'Host': hostname,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'Authorization': `key ${this.config.apiKey}`,
                     'Content-Length': Buffer.byteLength(postData)
                 }
             };
+
+            this.log(`POST /v5/${endpoint}`, data ? JSON.stringify(data) : '(no body)');
 
             const req = httpModule.request(options, (res) => {
                 let responseBody = '';
@@ -60,84 +82,129 @@ export class NestSmsGateway implements ISmsGateway {
                 });
 
                 res.on('end', () => {
+                    const statusCode = res.statusCode ?? 0;
+                    this.log(`HTTP ${statusCode} response:`, responseBody);
+
                     try {
-                        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                            const parsed = JSON.parse(responseBody);
-                            resolve(parsed);
+                        const parsed: NestSendResponse = JSON.parse(responseBody);
+
+                        if (statusCode >= 200 && statusCode < 300) {
+                            resolve({ statusCode, body: parsed });
                         } else {
-                            reject(new Error(`HTTP ${res.statusCode}: ${responseBody}`));
+                            const err: HttpError = new Error(
+                                `HTTP ${statusCode}: ${responseBody}`
+                            );
+                            err.statusCode = statusCode;
+                            err.rawBody = responseBody;
+                            reject(err);
                         }
-                    } catch (error) {
-                        reject(new Error(`Failed to parse response: ${responseBody}`));
+                    } catch {
+                        const err: HttpError = new Error(
+                            `Failed to parse gateway response (HTTP ${statusCode}): ${responseBody}`
+                        );
+                        err.statusCode = statusCode;
+                        err.rawBody = responseBody;
+                        reject(err);
                     }
                 });
             });
 
             req.on('error', (error) => {
+                this.log('Network error:', error.message);
                 reject(error);
             });
 
-            req.write(postData);
+            if (postData) {
+                req.write(postData);
+            }
             req.end();
         });
     }
 
     async quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult> {
-        const endpoint = 'message/sms/send';
-        // SMSOnlineGH v5 expects: text, sender, destinations[] (see API docs — not from/to/content).
         const requestBody = {
             text: params.Content,
-            type: params.Type || 0,
+            type: params.Type ?? 0,
             sender: params.From,
             destinations: [String(params.To)]
         };
 
+        this.log('quickSend params:', JSON.stringify(params));
+
+        let result: SendResult;
+
         try {
-            const response = await this.makeRequest(endpoint, requestBody);
-            const handshakeOk = Number(response.handshake?.id) === 0;
-            const data = response.data ?? null;
-            const batchId = data && typeof data === 'object' ? (data as { batch?: string }).batch : undefined;
-            const firstDest = data && typeof data === 'object'
-                ? (data as { destinations?: { id?: string }[] }).destinations?.[0]
-                : undefined;
+            const { statusCode, body: response } = await this.makeRequest(
+                'message/sms/send',
+                requestBody
+            );
 
-            const result: SendResult = {
+            const handshakeId = response.handshake?.id;
+            const handshakeLabel = response.handshake?.label;
+            const handshakeOk = Number(handshakeId) === 0;
+            const responseData = response.data ?? null;
+
+            const batchId =
+                responseData && typeof responseData === 'object'
+                    ? (responseData as { batch?: string }).batch
+                    : undefined;
+            const firstDest =
+                responseData && typeof responseData === 'object'
+                    ? (
+                          responseData as {
+                              destinations?: { id?: string }[];
+                          }
+                      ).destinations?.[0]
+                    : undefined;
+
+            let errorMsg: string | undefined;
+            if (!handshakeOk) {
+                if (handshakeLabel) {
+                    errorMsg = `API Error [code ${handshakeId}]: ${handshakeLabel}`;
+                } else if (handshakeId !== undefined && handshakeId !== null) {
+                    errorMsg = `API Error: handshake code=${handshakeId}`;
+                } else {
+                    errorMsg = `Unexpected API response: ${JSON.stringify(response)}`;
+                }
+            }
+
+            result = {
                 success: handshakeOk,
-                data,
                 messageId: batchId || firstDest?.id,
-                error: handshakeOk
-                    ? undefined
-                    : (response.handshake?.label
-                        || `handshake id ${String(response.handshake?.id)}`)
+                // On failure, expose the full raw response so callers can inspect it.
+                data: handshakeOk ? responseData : response,
+                error: errorMsg,
+                statusCode
             };
+        } catch (error: unknown) {
+            const httpErr = error as HttpError;
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
 
-            if (callback) {
-                callback(result);
-            }
-
-            return result;
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            const result: SendResult = {
+            result = {
                 success: false,
-                error: errorMessage
+                error: errorMessage,
+                statusCode: httpErr.statusCode,
+                // Preserve whatever raw body we got for inspection.
+                data: httpErr.rawBody !== undefined ? httpErr.rawBody : null
             };
-
-            if (callback) {
-                callback(result);
-            }
-
-            return result;
         }
+
+        this.log('quickSend result:', JSON.stringify(result));
+
+        if (callback) {
+            callback(result);
+        }
+
+        return result;
     }
 
     async getBalance(): Promise<{ balance: number; model: string }> {
-        const endpoint = 'account/balance';
-        const response = await this.makeRequest(endpoint);
-        
+        this.log('getBalance called');
+        const { body: response } = await this.makeRequest('account/balance');
         return {
-            balance: response.data?.balance || 0,
-            model: response.data?.model || 'quantity'
+            balance: (response.data as { balance?: number })?.balance ?? 0,
+            model: (response.data as { model?: string })?.model ?? 'quantity'
         };
     }
 }

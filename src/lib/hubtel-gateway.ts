@@ -4,6 +4,7 @@ import { ISmsGatewayDelegate, QuickSendParams, SendResult } from './types';
 export interface HubtelSmsGatewayConfig {
     clientId: string;
     clientSecret: string;
+    debug?: boolean;
 }
 
 /**
@@ -11,15 +12,27 @@ export interface HubtelSmsGatewayConfig {
  */
 export class HubtelSmsGateway implements ISmsGatewayDelegate {
     private _client: HubtelSms;
+    private _debug: boolean;
 
     constructor(config: HubtelSmsGatewayConfig) {
+        this._debug = config.debug || false;
         this._client = new HubtelSms({
             clientId: config.clientId,
             clientSecret: config.clientSecret
         });
     }
 
+    private log(...args: unknown[]): void {
+        if (this._debug) {
+            console.log('[unismsgateway:hubtel]', ...args);
+        }
+    }
+
     async quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult> {
+        this.log('quickSend params:', JSON.stringify(params));
+
+        let result: SendResult;
+
         try {
             const raw = await this._client.quickSend({
                 From: params.From,
@@ -27,30 +40,38 @@ export class HubtelSmsGateway implements ISmsGatewayDelegate {
                 Content: params.Content
             });
 
-            const ok = Number(raw.Status) === 0;
-            const result: SendResult = {
+            this.log('quickSend raw response:', JSON.stringify(raw));
+
+            const ok = Number(raw?.Status) === 0;
+            result = {
                 success: ok,
-                messageId: String(raw.MessageId),
+                messageId: raw?.MessageId != null ? String(raw.MessageId) : undefined,
                 data: raw,
-                error: ok ? undefined : `Hubtel Status=${raw.Status}`
+                error: ok
+                    ? undefined
+                    : `Hubtel API Error: Status=${raw?.Status}, NetworkId=${raw?.NetworkId ?? 'n/a'}`
             };
+        } catch (error: unknown) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
 
-            if (callback) {
-                callback(result);
-            }
+            this.log('quickSend error:', errorMessage);
 
-            return result;
-        } catch (error) {
-            const result: SendResult = {
+            result = {
                 success: false,
-                error: error instanceof Error ? error.message : String(error)
+                error: errorMessage,
+                data: error instanceof Error && (error as any).response
+                    ? (error as any).response
+                    : null
             };
-
-            if (callback) {
-                callback(result);
-            }
-
-            return result;
         }
+
+        this.log('quickSend result:', JSON.stringify(result));
+
+        if (callback) {
+            callback(result);
+        }
+
+        return result;
     }
 }

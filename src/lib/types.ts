@@ -12,6 +12,8 @@ export interface SendResult {
     messageId?: string;
     data?: any;
     error?: string;
+    /** HTTP status code returned by the gateway (when available). */
+    statusCode?: number;
 }
 
 export interface IgatewayParam {
@@ -23,6 +25,8 @@ export interface IgatewayParam {
     clientSecret?: string;
     apiKey?: string;
     protocol?: 'http' | 'https';
+    /** Set to true to print request/response details to console for debugging. */
+    debug?: boolean;
 }
 
 export interface IgatewaySettings {
@@ -44,6 +48,7 @@ export interface NestSmsConfig {
     apiKey: string;
     host?: string;
     protocol?: 'http' | 'https';
+    debug?: boolean;
 }
 
 export interface NestSendResponse {

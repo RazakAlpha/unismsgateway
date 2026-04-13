@@ -61,20 +61,23 @@ export class smsPlatform implements ISmsGateway {
                     username: param.username!,
                     password: param.password!,
                     protocol: param.protocol || 'http',
-                    port: param.port || 8080
+                    port: param.port || 8080,
+                    debug: param.debug
                 });
 
             case 'hubtel':
                 return new HubtelSmsGateway({
                     clientId: param.clientId!,
-                    clientSecret: param.clientSecret!
+                    clientSecret: param.clientSecret!,
+                    debug: param.debug
                 });
 
             case 'nest':
                 return new NestSmsGateway({
                     apiKey: param.apiKey!,
                     host: param.host,
-                    protocol: param.protocol
+                    protocol: param.protocol,
+                    debug: param.debug
                 });
 
             default:
