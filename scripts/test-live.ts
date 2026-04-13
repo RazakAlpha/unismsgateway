@@ -12,7 +12,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { init, smsPlatform, PlatformId, QuickSendParams } from '../src/lib/lib';
+import { init, smsPlatform, PlatformId, QuickSendParams, IgatewayParam } from '../src/lib/lib';
 
 // ─── Colour helpers ──────────────────────────────────────────────────────────
 const GREEN  = '\x1b[32m';
@@ -61,13 +61,16 @@ async function testPlatform(platformId: PlatformId): Promise<void> {
 
   // 1. Initialisation
   await runTest('Init / config validation', async () => {
-    const param: Record<string, string | number> = {};
+    const param: IgatewayParam = {};
 
     switch (platformId) {
       case 'nest':
         param.apiKey = requireEnv('NEST_API_KEY');
         if (env('NEST_HOST'))     param.host     = env('NEST_HOST')!;
-        if (env('NEST_PROTOCOL')) param.protocol = env('NEST_PROTOCOL')!;
+        if (env('NEST_PROTOCOL')) {
+          param.protocol = env('NEST_PROTOCOL')! as 'http' | 'https';
+        }
+        param.debug = true;
         break;
 
       case 'hubtel':
@@ -80,11 +83,13 @@ async function testPlatform(platformId: PlatformId): Promise<void> {
         param.password = requireEnv('ROUTE_PASSWORD');
         if (env('ROUTE_HOST'))     param.host     = env('ROUTE_HOST')!;
         if (env('ROUTE_PORT'))     param.port     = Number(env('ROUTE_PORT'));
-        if (env('ROUTE_PROTOCOL')) param.protocol = env('ROUTE_PROTOCOL')!;
+        if (env('ROUTE_PROTOCOL')) {
+          param.protocol = env('ROUTE_PROTOCOL')! as 'http' | 'https';
+        }
         break;
     }
 
-    platform = init({ platformId, param: param as any });
+    platform = init({ platformId, param });
     pass(`Initialized ${platformId} platform`);
   });
 

@@ -37,23 +37,24 @@ import { init, getSmsPlatform, reset, smsPlatform } from 'unismsgateway';
 
 | Field        | Type            | Description                            |
 | ------------ | --------------- | -------------------------------------- |
-| `platformId` | `'route'        | 'hubtel'                               |
+| `platformId` | `'route' \| 'hubtel' \| 'nest'` | Which gateway to use. |
 | `param`      | `IgatewayParam` | Provider-specific options (see below). |
 
 
 ### `IgatewayParam` (all fields optional except what your `platformId` requires)
 
 
-| Field          | Type     | Used by         | Description                                                            |
-| -------------- | -------- | --------------- | ---------------------------------------------------------------------- |
-| `username`     | `string` | `route`         | Route Mobile account username. **Required** for `route`.               |
-| `password`     | `string` | `route`         | Route Mobile account password. **Required** for `route`.               |
-| `host`         | `string` | `route`, `nest` | API host. See per-gateway defaults below.                              |
-| `port`         | `number` | `route`         | TCP port for Route Mobile. Default: `8080`.                            |
-| `protocol`     | `'http'  | 'https'`        | `route`, `nest`                                                        |
-| `clientId`     | `string` | `hubtel`        | Hubtel client ID. **Required** for `hubtel`.                           |
-| `clientSecret` | `string` | `hubtel`        | Hubtel client secret. **Required** for `hubtel`.                       |
-| `apiKey`       | `string` | `nest`          | SMSOnlineGH API key (`Authorization: key …`). **Required** for `nest`. |
+| Field          | Type      | Used by         | Description                                                            |
+| -------------- | --------- | --------------- | ---------------------------------------------------------------------- |
+| `username`     | `string`  | `route`         | Route Mobile account username. **Required** for `route`.               |
+| `password`     | `string`  | `route`         | Route Mobile account password. **Required** for `route`.               |
+| `host`         | `string`  | `route`, `nest` | API host. See per-gateway defaults below.                              |
+| `port`         | `number`  | `route`         | TCP port for Route Mobile. Default: `8080`.                            |
+| `protocol`     | `'http' \| 'https'` | `route`, `nest` | HTTPS or HTTP to the provider API.                         |
+| `clientId`     | `string`  | `hubtel`        | Hubtel client ID. **Required** for `hubtel`.                           |
+| `clientSecret` | `string`  | `hubtel`        | Hubtel client secret. **Required** for `hubtel`.                       |
+| `apiKey`       | `string`  | `nest`          | SMSOnlineGH API key (`Authorization: key …`). **Required** for `nest`. |
+| `debug`        | `boolean` | all             | If `true`, the active gateway logs each request/response to the console (prefix `[unismsgateway:…]`). Off by default. |
 
 
 Validation runs in `smsPlatform` when the instance is constructed: missing required fields for the chosen `platformId` throw `Error` with a clear message.
@@ -80,9 +81,9 @@ Nothing is read from the environment unless **you** wire it. Required fields are
 
 | `platformId` | Required in `param`        | Optional in `param` (defaults in this library)                                                |
 | ------------ | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`)                          |
-| `hubtel`     | `clientId`, `clientSecret` | —                                                                                             |
-| `route`      | `username`, `password`     | `host` (default `rslr.connectbind.com`), `protocol` (default `http`), `port` (default `8080`) |
+| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`), `debug`                 |
+| `hubtel`     | `clientId`, `clientSecret` | `debug`                                                                                       |
+| `route`      | `username`, `password`     | `host` (default `rslr.connectbind.com`), `protocol` (default `http`), `port` (default `8080`), `debug` |
 
 
 **Suggested env names for your app** (optional; you can rename them). Credential keys (`NEST_`*, `HUBTEL_`*, `ROUTE_*`) match [live test](#live-integration-test-environment-variables) and `.env.example`. Platform selection differs: the test script requires `GATEWAY_PLATFORM` (or `TEST_ALL`); in your app you choose any name (the example below uses `SMS_PLATFORM_ID`):
@@ -340,7 +341,7 @@ console.log(balance.balance, balance.model);
 | Field     | Type     | Required | Description                                                            |
 | --------- | -------- | -------- | ---------------------------------------------------------------------- |
 | `From`    | `string` | yes      | Sender ID or label.                                                    |
-| `To`      | `string  | number`  | yes                                                                    |
+| `To`      | `string \| number` | yes                                                                    |
 | `Content` | `string` | yes      | Message body.                                                          |
 | `Type`    | `number` | no       | Message type; **nest** maps this to request body `type` (default `0`). |
 
@@ -357,8 +358,13 @@ Returns `Promise<SendResult>`. Optional `callback` is invoked with the same resu
   messageId?: string;
   data?: any;
   error?: string;
+  statusCode?: number; // HTTP status from the provider when available (nest, etc.)
 }
 ```
+
+When `success` is `false`, always read **`error`** — it contains a human-readable reason (provider status codes, API handshake labels, network errors, and so on). For **`nest`**, if the API rejects the send but returns JSON, **`data`** is the **full parsed response body** (not only `response.data`), so you can inspect `handshake` and any provider fields. For HTTP errors, `data` may be the raw response body string. **`statusCode`** is set when the adapter knows the HTTP status (for example nest).
+
+**Debugging:** Set `param.debug: true` when calling `init()` to print request URLs, bodies, and responses to the console. The live test script enables debug for the `nest` platform so you can trace `quickSend` and `getBalance` without changing application code.
 
 **Example**
 
