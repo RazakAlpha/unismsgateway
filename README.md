@@ -337,18 +337,18 @@ console.log(balance.balance, balance.model);
 
 ### `QuickSendParams`
 
-
 | Field     | Type     | Required | Description                                                            |
 | --------- | -------- | -------- | ---------------------------------------------------------------------- |
 | `From`    | `string` | yes      | Sender ID or label.                                                    |
-| `To`      | `string \| number` | yes                                                                    |
+| `To`      | `string \| number` | yes      | Recipient MSISDN or number.                                            |
 | `Content` | `string` | yes      | Message body.                                                          |
 | `Type`    | `number` | no       | Message type; **nest** maps this to request body `type` (default `0`). |
 
+**camelCase:** You may pass **`from`**, **`to`**, **`content`**, and **`type`** instead of the PascalCase names above. Many JavaScript projects use camelCase; if you pass only `content` and `Content` is missing, the SMSOnlineGH (`nest`) API receives no message body and may return handshake **1305** (`MV_ERR_MESSAGE` — missing or invalid message body). The library normalizes both conventions before calling the gateway.
 
 ### `quickSend(params, callback?)`
 
-Returns `Promise<SendResult>`. Optional `callback` is invoked with the same result when the promise completes.
+Returns `Promise<SendResult>`. Optional `callback` is invoked with the same result when the promise completes. The `params` argument accepts **`QuickSendParams`** (PascalCase) or **`QuickSendParamsCamel`** (`{ from, to, content, type? }`). See **`normalizeQuickSendParams`** in the public API if you need the same mapping outside `quickSend`.
 
 `**SendResult`:**
 
@@ -438,12 +438,15 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 ## API reference
 
 
-| Export             | Description                                                          |
-| ------------------ | -------------------------------------------------------------------- |
-| `init(settings)`   | Create and register the singleton `smsPlatform`, return it.          |
-| `getSmsPlatform()` | Current `smsPlatform` or `null` after `reset()` and before `init()`. |
-| `reset()`          | Clear the singleton.                                                 |
-| `smsPlatform`      | Class type for typing/advanced use.                                  |
+| Export                     | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `init(settings)`           | Create and register the singleton `smsPlatform`, return it.          |
+| `getSmsPlatform()`         | Current `smsPlatform` or `null` after `reset()` and before `init()`. |
+| `reset()`                  | Clear the singleton.                                                 |
+| `smsPlatform`              | Class type for typing/advanced use.                                  |
+| `QuickSendParamsInput`     | Union: PascalCase `QuickSendParams` or camelCase `QuickSendParamsCamel`. |
+| `QuickSendParamsCamel`     | `{ from, to, content, type? }` for `quickSend`.                      |
+| `normalizeQuickSendParams` | Maps input to canonical `QuickSendParams` (throws if body/sender missing). |
 
 
 `**smsPlatform` instance methods**
@@ -452,13 +455,16 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 | Method                         | Returns               | Description                                    |
 | ------------------------------ | --------------------- | ---------------------------------------------- |
 | `init()`                       | `ISmsGateway`         | Returns `this` (facade).                       |
-| `quickSend(params, callback?)` | `Promise<SendResult>` | Delegates to the active gateway.               |
+| `quickSend(params, callback?)` | `Promise<SendResult>` | Normalizes PascalCase or camelCase params, then delegates to the active gateway. |
 | `getGateway()`                 | `ISmsGateway`         | Underlying adapter (for nest: `getBalance()`). |
 
 
 ---
 
 ## Changelog
+
+### 1.5.1
+- **Fix (`nest` / all gateways):** `quickSend` now accepts **camelCase** (`from`, `to`, `content`, `type`) as well as PascalCase (`From`, `To`, `Content`, `Type`). Passing only camelCase previously left `Content` undefined, so the nest JSON body omitted `text` and the API returned handshake **1305** (missing or invalid message body). Validation errors throw clear messages when body or sender is empty after trim.
 
 ### 1.5.0
 - **Fix (`nest`):** `quickSend` now reliably works in long-running processes (servers, workers). Node's global HTTP agent reuses keep-alive sockets across calls; when the provider closes an idle socket server-side, the next `quickSend` that writes a request body received `write ECONNABORTED` while `getBalance` (no body) appeared to work fine. Fixed by setting `agent: false` on each request so every call opens a fresh connection rather than reusing a potentially stale one from the pool.

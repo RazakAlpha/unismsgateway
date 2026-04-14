@@ -4,6 +4,9 @@ import {
     IgatewayParam,
     PlatformId,
     QuickSendParams,
+    QuickSendParamsInput,
+    QuickSendParamsCamel,
+    normalizeQuickSendParams,
     SendResult,
     ISmsGateway
 } from './platform';
@@ -30,6 +33,9 @@ export {
     IgatewayParam,
     PlatformId,
     QuickSendParams,
+    QuickSendParamsInput,
+    QuickSendParamsCamel,
+    normalizeQuickSendParams,
     SendResult,
     ISmsGateway
 };

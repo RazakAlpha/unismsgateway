@@ -8,7 +8,9 @@ import {
     ISmsGateway,
     ISmsGatewayDelegate,
     QuickSendParams,
-    SendResult
+    QuickSendParamsInput,
+    SendResult,
+    normalizeQuickSendParams
 } from './types';
 
 export * from './types';
@@ -89,11 +91,12 @@ export class smsPlatform implements ISmsGateway {
         return this;
     }
 
-    quickSend(param: QuickSendParams, callback?: Function): Promise<SendResult> {
+    quickSend(param: QuickSendParamsInput, callback?: Function): Promise<SendResult> {
         if (!this._gateway) {
             throw new Error('Gateway not initialized. Call init() first.');
         }
-        return this._gateway.quickSend(param, callback);
+        const normalized = normalizeQuickSendParams(param);
+        return this._gateway.quickSend(normalized, callback);
     }
 
     getGateway(): ISmsGatewayDelegate {

@@ -90,11 +90,12 @@ typings.d.ts         # Module declarations for external packages
 type PlatformId = 'route' | 'hubtel' | 'nest';
 
 interface QuickSendParams {
-    From: string;
-    To: string | number;
-    Content: string;
-    Type?: number;
+ From: string;
+ To: string | number;
+ Content: string;
+ Type?: number;
 }
+// quickSend also accepts camelCase { from, to, content, type? }; see normalizeQuickSendParams in types.ts.
 
 interface SendResult {
     success: boolean;
