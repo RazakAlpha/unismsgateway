@@ -1,4 +1,4 @@
-import { IgatewaySettings, IgatewayParam, ISmsGateway, QuickSendParams, SendResult } from './types';
+import { IgatewaySettings, IgatewayParam, ISmsGateway, ISmsGatewayDelegate, QuickSendParamsInput, SendResult } from './types';
 export * from './types';
 export declare class smsPlatform implements ISmsGateway {
     private _settings;
@@ -7,7 +7,7 @@ export declare class smsPlatform implements ISmsGateway {
     private validateSettings;
     private createGateway;
     init(): ISmsGateway;
-    quickSend(param: QuickSendParams, callback?: Function): Promise<SendResult>;
-    getGateway(): ISmsGateway;
+    quickSend(param: QuickSendParamsInput, callback?: Function): Promise<SendResult>;
+    getGateway(): ISmsGatewayDelegate;
 }
 export { IgatewaySettings, IgatewayParam };

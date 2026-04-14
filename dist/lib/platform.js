@@ -11,9 +11,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.smsPlatform = void 0;
-const hubtel_sms_extended_1 = require("hubtel-sms-extended");
-const routemobilesms_1 = require("routemobilesms");
 const nest_gateway_1 = require("./nest-gateway");
+const hubtel_gateway_1 = require("./hubtel-gateway");
+const route_gateway_1 = require("./route-gateway");
+const types_1 = require("./types");
 __exportStar(require("./types"), exports);
 const GATEWAY_CONFIGS = {
     route: { requiresUsernamePassword: true },
@@ -47,23 +48,26 @@ class smsPlatform {
         const { platformId, param } = this._settings;
         switch (platformId) {
             case 'route':
-                return new routemobilesms_1.routeSms({
+                return new route_gateway_1.RouteSmsGateway({
                     host: param.host || 'rslr.connectbind.com',
                     username: param.username,
                     password: param.password,
                     protocol: param.protocol || 'http',
-                    port: param.port || 8080
+                    port: param.port || 8080,
+                    debug: param.debug
                 });
             case 'hubtel':
-                return new hubtel_sms_extended_1.HubtelSms({
+                return new hubtel_gateway_1.HubtelSmsGateway({
                     clientId: param.clientId,
-                    clientSecret: param.clientSecret
+                    clientSecret: param.clientSecret,
+                    debug: param.debug
                 });
             case 'nest':
                 return new nest_gateway_1.NestSmsGateway({
                     apiKey: param.apiKey,
                     host: param.host,
-                    protocol: param.protocol
+                    protocol: param.protocol,
+                    debug: param.debug
                 });
             default:
                 throw new Error(`Unsupported platform: ${platformId}`);
@@ -76,7 +80,8 @@ class smsPlatform {
         if (!this._gateway) {
             throw new Error('Gateway not initialized. Call init() first.');
         }
-        return this._gateway.quickSend(param, callback);
+        const normalized = (0, types_1.normalizeQuickSendParams)(param);
+        return this._gateway.quickSend(normalized, callback);
     }
     getGateway() {
         return this._gateway;

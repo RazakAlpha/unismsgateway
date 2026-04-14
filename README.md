@@ -463,6 +463,9 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 
 ## Changelog
 
+### 1.5.2
+- **Build:** TypeScript `rootDir` is now `./src` with `include: ["src/**/*.ts"]` (scripts stay `ts-node`-only). Previously the compiler also picked up `scripts/test-live.ts`, inferred a project root above `src/`, and emitted library code under `dist/src/lib/…` while published entrypoints load `dist/lib/…` — leaving **stale or missing** `dist/lib/nest-gateway.js` (wrong `requestBody` shape). The published `dist/` layout now matches `package.json` `main` and always rebuilds gateway files from current sources.
+
 ### 1.5.1
 - **Fix (`nest` / all gateways):** `quickSend` now accepts **camelCase** (`from`, `to`, `content`, `type`) as well as PascalCase (`From`, `To`, `Content`, `Type`). Passing only camelCase previously left `Content` undefined, so the nest JSON body omitted `text` and the API returned handshake **1305** (missing or invalid message body). Validation errors throw clear messages when body or sender is empty after trim.
 

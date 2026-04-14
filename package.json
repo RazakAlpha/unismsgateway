@@ -1,6 +1,6 @@
 {
   "name": "unismsgateway",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "A unified SMS gateway library that brings access to multiple SMS gateways under a single API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

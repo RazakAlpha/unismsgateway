@@ -29,6 +29,7 @@ npm install
 - **esModuleInterop**: Enabled
 - **Declaration files**: Generated automatically
 - **Output directory**: `./dist/`
+- **rootDir**: `./src` with `include` limited to `src/**/*.ts` — avoids emitting library code under `dist/src/` while entrypoints resolve `dist/lib/`, which used to ship stale gateway JS.
 
 ### Naming Conventions
 - **Classes**: PascalCase (e.g., `smsPlatform`, `NestSmsGateway`)
@@ -80,7 +81,7 @@ src/
 scripts/
   test-live.ts       # Live integration test runner (npm test)
 dist/                # Compiled output (do not edit)
-typings.d.ts         # Module declarations for external packages
+src/typings.d.ts     # Module declarations for external packages
 .env.example         # Template for test-live credentials
 ```
 
