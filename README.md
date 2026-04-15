@@ -55,6 +55,10 @@ import { init, getSmsPlatform, reset, smsPlatform } from 'unismsgateway';
 | `clientSecret` | `string`  | `hubtel`        | Hubtel client secret. **Required** for `hubtel`.                       |
 | `apiKey`       | `string`  | `nest`          | SMSOnlineGH API key (`Authorization: key …`). **Required** for `nest`. |
 | `debug`        | `boolean` | all             | If `true`, the active gateway logs each request/response to the console (prefix `[unismsgateway:…]`). Off by default. |
+| `keepAlive`    | `boolean` | `nest`          | Enable HTTP keep-alive connection pooling. Reuses TCP/TLS sockets across calls, eliminating per-request handshake overhead. Stale-socket errors are recovered automatically via `retries`. Default: `true`. |
+| `timeout`      | `number`  | `nest`          | Request deadline in milliseconds. The request is aborted with an `ETIMEDOUT` error if the server does not respond within this window. Default: `10000`. |
+| `maxSockets`   | `number`  | `nest`          | Maximum concurrent sockets in the keep-alive pool. Default: `10`. |
+| `retries`      | `number`  | `nest`          | Automatic retry attempts on transient socket errors (`ECONNRESET`, `ECONNABORTED`, `EPIPE`, `ETIMEDOUT`). Default: `1`. |
 
 
 Validation runs in `smsPlatform` when the instance is constructed: missing required fields for the chosen `platformId` throw `Error` with a clear message.
@@ -81,7 +85,7 @@ Nothing is read from the environment unless **you** wire it. Required fields are
 
 | `platformId` | Required in `param`        | Optional in `param` (defaults in this library)                                                |
 | ------------ | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`), `debug`                 |
+| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`), `debug`, `keepAlive` (default `true`), `timeout` (default `10000` ms), `maxSockets` (default `10`), `retries` (default `1`) |
 | `hubtel`     | `clientId`, `clientSecret` | `debug`                                                                                       |
 | `route`      | `username`, `password`     | `host` (default `rslr.connectbind.com`), `protocol` (default `http`), `port` (default `8080`), `debug` |
 
@@ -300,20 +304,42 @@ const gateway = unisms.init({
 **Optional `param`:**
 
 
-| Field      | Default if omitted    |
-| ---------- | --------------------- |
-| `host`     | `api.smsonlinegh.com` |
-| `protocol` | `'https'`             |
+| Field        | Default if omitted    | Notes                                                                 |
+| ------------ | --------------------- | --------------------------------------------------------------------- |
+| `host`       | `api.smsonlinegh.com` |                                                                       |
+| `protocol`   | `'https'`             |                                                                       |
+| `keepAlive`  | `true`                | Set to `false` to open a fresh TCP/TLS connection per request.        |
+| `timeout`    | `10000`               | Milliseconds before the request is aborted with `ETIMEDOUT`.          |
+| `maxSockets` | `10`                  | Maximum sockets held open in the keep-alive pool.                     |
+| `retries`    | `1`                   | Retry count for transient errors (`ECONNRESET`, `ECONNABORTED`, etc). |
 
 
-Requests use `POST` to path `**/v5/<endpoint>`** (e.g. send: `message/sms/send`, balance: `account/balance`). Authorization header: `Authorization: key <apiKey>`. Each request opens a fresh connection (keep-alive pooling is disabled) to prevent stale-socket errors in long-running processes.
+Requests use `POST` to path `/v5/<endpoint>` (e.g. send: `message/sms/send`, balance: `account/balance`). Authorization header: `Authorization: key <apiKey>`.
+
+`NestSmsGateway` maintains a private keep-alive connection pool (`https.Agent`) so TCP and TLS handshakes are paid once and subsequent requests reuse warm sockets. If the server closes an idle socket between calls and the first write fails with `ECONNABORTED` or `ECONNRESET`, the library retries automatically on a fresh socket (controlled by `retries`). Set `keepAlive: false` to revert to a per-request connection if your network environment requires it.
+
+The `destroy()` method on `NestSmsGateway` releases all pooled sockets; call it during application shutdown so Node does not hold the event loop open. Access it via `getGateway()`:
+
+```javascript
+const gateway = unisms.init({
+  platformId: 'nest',
+  param: { apiKey: 'your-api-key' }
+});
+
+// On app shutdown:
+gateway.getGateway().destroy();
+```
+
+**Example with performance tuning:**
 
 ```javascript
 const gateway = unisms.init({
   platformId: 'nest',
   param: {
-    apiKey: 'your-api-key'
-    // optional: host, protocol
+    apiKey: 'your-api-key',
+    timeout: 5000,     // abort after 5 s
+    maxSockets: 20,    // higher pool ceiling for burst traffic
+    retries: 2         // extra resilience on flaky networks
   }
 });
 ```
@@ -462,6 +488,15 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 ---
 
 ## Changelog
+
+### 1.6.0
+
+- **Performance (`nest`):** The `NestSmsGateway` now uses a persistent keep-alive connection pool (`https.Agent`) instead of opening a fresh TCP + TLS connection on every request. Subsequent sends to the same host reuse warm sockets, eliminating the per-call handshake overhead (~100–300 ms per request).
+- **Reliability (`nest`):** Stale-socket errors (`ECONNRESET`, `ECONNABORTED`, `EPIPE`, `ETIMEDOUT`) that can occur when a pooled socket is reused after the server has closed it are automatically retried on a fresh connection. The default retry count is `1`; configure via `param.retries`.
+- **Timeout support (`nest`):** Requests that stall mid-flight are now aborted after a configurable deadline (`param.timeout`, default `10 000 ms`) instead of hanging indefinitely.
+- **New `param` fields (`nest`):** `keepAlive` (default `true`), `timeout` (default `10000`), `maxSockets` (default `10`), `retries` (default `1`). All are optional and fully backwards-compatible; existing `init()` calls require no changes.
+- **Resource cleanup (`nest`):** `NestSmsGateway` exposes a `destroy()` method (accessible via `getGateway().destroy()`) that releases pooled sockets so Node does not hold the event loop open after the gateway is no longer needed.
+- **Internal (`nest`):** Response chunks are now accumulated as `Buffer[]` and concatenated once at the end, avoiding repeated string re-allocation per chunk. The POST body is serialised to a `Buffer` upfront so `Content-Length` reads `Buffer.length` (O(1)) rather than rescanning the string.
 
 ### 1.5.2
 - **Build:** TypeScript `rootDir` is now `./src` with `include: ["src/**/*.ts"]` (scripts stay `ts-node`-only). Previously the compiler also picked up `scripts/test-live.ts`, inferred a project root above `src/`, and emitted library code under `dist/src/lib/…` while published entrypoints load `dist/lib/…` — leaving **stale or missing** `dist/lib/nest-gateway.js` (wrong `requestBody` shape). The published `dist/` layout now matches `package.json` `main` and always rebuilds gateway files from current sources.

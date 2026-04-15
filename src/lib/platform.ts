@@ -79,7 +79,11 @@ export class smsPlatform implements ISmsGateway {
                     apiKey: param.apiKey!,
                     host: param.host,
                     protocol: param.protocol,
-                    debug: param.debug
+                    debug: param.debug,
+                    timeout: param.timeout,
+                    maxSockets: param.maxSockets,
+                    retries: param.retries,
+                    keepAlive: param.keepAlive
                 });
 
             default:

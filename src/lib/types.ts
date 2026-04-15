@@ -90,6 +90,30 @@ export interface IgatewayParam {
     protocol?: 'http' | 'https';
     /** Set to true to print request/response details to console for debugging. */
     debug?: boolean;
+    /**
+     * Request timeout in milliseconds. Applies to the nest gateway.
+     * The request is aborted and an ETIMEDOUT error is thrown if the server
+     * does not respond within this window. Default: 10 000 ms.
+     */
+    timeout?: number;
+    /**
+     * Maximum number of concurrent sockets in the keep-alive pool.
+     * Applies to the nest gateway. Default: 10.
+     */
+    maxSockets?: number;
+    /**
+     * How many times to automatically retry on transient socket errors
+     * (ECONNRESET, ECONNABORTED, EPIPE, ETIMEDOUT). Applies to the nest gateway.
+     * Default: 1.
+     */
+    retries?: number;
+    /**
+     * Enable HTTP keep-alive connection pooling for the nest gateway.
+     * Reuses TCP/TLS connections across requests, eliminating per-call handshake
+     * overhead. Stale-socket errors (ECONNABORTED etc.) are recovered via the
+     * `retries` setting. Default: true.
+     */
+    keepAlive?: boolean;
 }
 
 export interface IgatewaySettings {
@@ -112,6 +136,14 @@ export interface NestSmsConfig {
     host?: string;
     protocol?: 'http' | 'https';
     debug?: boolean;
+    /** Request timeout in milliseconds. Default: 10 000. */
+    timeout?: number;
+    /** Max concurrent sockets in the keep-alive pool. Default: 10. */
+    maxSockets?: number;
+    /** Retry attempts on transient socket errors. Default: 1. */
+    retries?: number;
+    /** Enable HTTP keep-alive connection pooling. Default: true. */
+    keepAlive?: boolean;
 }
 
 export interface NestSendResponse {
