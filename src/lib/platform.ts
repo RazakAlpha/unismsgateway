@@ -9,8 +9,14 @@ import {
     ISmsGatewayDelegate,
     QuickSendParams,
     QuickSendParamsInput,
+    SendParams,
+    SendParamsInput,
     SendResult,
-    normalizeQuickSendParams
+    PersonalizedSendParams,
+    PersonalizedSendParamsInput,
+    normalizePersonalizedSendParams,
+    normalizeQuickSendParams,
+    normalizeSendParams
 } from './types';
 
 export * from './types';
@@ -51,6 +57,32 @@ export class smsPlatform implements ISmsGateway {
         if (config.requiresUsernamePassword && (!param.username || !param.password)) {
             throw new Error(`Platform '${settings.platformId}' requires 'username' and 'password' in param`);
         }
+
+        if (settings.platformId === 'nest' && param.deliveryCallback) {
+            this.validateNestDeliveryCallback(param.deliveryCallback);
+        }
+    }
+
+    private validateNestDeliveryCallback(
+        deliveryCallback: NonNullable<IgatewayParam['deliveryCallback']>
+    ): void {
+        const url = deliveryCallback.url == null ? '' : String(deliveryCallback.url).trim();
+        if (url === '') {
+            throw new Error(
+                "Platform 'nest': deliveryCallback.url must be a non-empty string"
+            );
+        }
+
+        const accept = deliveryCallback.accept;
+        if (
+            accept !== undefined &&
+            accept !== 'application/json' &&
+            accept !== 'application/xml'
+        ) {
+            throw new Error(
+                "Platform 'nest': deliveryCallback.accept must be 'application/json' or 'application/xml'"
+            );
+        }
     }
 
     private createGateway(): ISmsGatewayDelegate {
@@ -71,7 +103,13 @@ export class smsPlatform implements ISmsGateway {
                 return new HubtelSmsGateway({
                     clientId: param.clientId!,
                     clientSecret: param.clientSecret!,
-                    debug: param.debug
+                    host: param.host,
+                    protocol: param.protocol,
+                    debug: param.debug,
+                    timeout: param.timeout,
+                    maxSockets: param.maxSockets,
+                    retries: param.retries,
+                    keepAlive: param.keepAlive
                 });
 
             case 'nest':
@@ -83,7 +121,13 @@ export class smsPlatform implements ISmsGateway {
                     timeout: param.timeout,
                     maxSockets: param.maxSockets,
                     retries: param.retries,
-                    keepAlive: param.keepAlive
+                    keepAlive: param.keepAlive,
+                    deliveryCallback: param.deliveryCallback
+                        ? {
+                            url: param.deliveryCallback.url.trim(),
+                            accept: param.deliveryCallback.accept
+                        }
+                        : undefined
                 });
 
             default:
@@ -101,6 +145,25 @@ export class smsPlatform implements ISmsGateway {
         }
         const normalized = normalizeQuickSendParams(param);
         return this._gateway.quickSend(normalized, callback);
+    }
+
+    send(param: SendParamsInput, callback?: Function): Promise<SendResult> {
+        if (!this._gateway) {
+            throw new Error('Gateway not initialized. Call init() first.');
+        }
+        const normalized = normalizeSendParams(param);
+        return this._gateway.send(normalized, callback);
+    }
+
+    sendPersonalized(
+        param: PersonalizedSendParamsInput,
+        callback?: Function
+    ): Promise<SendResult> {
+        if (!this._gateway) {
+            throw new Error('Gateway not initialized. Call init() first.');
+        }
+        const normalized = normalizePersonalizedSendParams(param);
+        return this._gateway.sendPersonalized(normalized, callback);
     }
 
     getGateway(): ISmsGatewayDelegate {

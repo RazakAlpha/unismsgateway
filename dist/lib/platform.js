@@ -43,6 +43,21 @@ class smsPlatform {
         if (config.requiresUsernamePassword && (!param.username || !param.password)) {
             throw new Error(`Platform '${settings.platformId}' requires 'username' and 'password' in param`);
         }
+        if (settings.platformId === 'nest' && param.deliveryCallback) {
+            this.validateNestDeliveryCallback(param.deliveryCallback);
+        }
+    }
+    validateNestDeliveryCallback(deliveryCallback) {
+        const url = deliveryCallback.url == null ? '' : String(deliveryCallback.url).trim();
+        if (url === '') {
+            throw new Error("Platform 'nest': deliveryCallback.url must be a non-empty string");
+        }
+        const accept = deliveryCallback.accept;
+        if (accept !== undefined &&
+            accept !== 'application/json' &&
+            accept !== 'application/xml') {
+            throw new Error("Platform 'nest': deliveryCallback.accept must be 'application/json' or 'application/xml'");
+        }
     }
     createGateway() {
         const { platformId, param } = this._settings;
@@ -60,7 +75,13 @@ class smsPlatform {
                 return new hubtel_gateway_1.HubtelSmsGateway({
                     clientId: param.clientId,
                     clientSecret: param.clientSecret,
-                    debug: param.debug
+                    host: param.host,
+                    protocol: param.protocol,
+                    debug: param.debug,
+                    timeout: param.timeout,
+                    maxSockets: param.maxSockets,
+                    retries: param.retries,
+                    keepAlive: param.keepAlive
                 });
             case 'nest':
                 return new nest_gateway_1.NestSmsGateway({
@@ -71,7 +92,13 @@ class smsPlatform {
                     timeout: param.timeout,
                     maxSockets: param.maxSockets,
                     retries: param.retries,
-                    keepAlive: param.keepAlive
+                    keepAlive: param.keepAlive,
+                    deliveryCallback: param.deliveryCallback
+                        ? {
+                            url: param.deliveryCallback.url.trim(),
+                            accept: param.deliveryCallback.accept
+                        }
+                        : undefined
                 });
             default:
                 throw new Error(`Unsupported platform: ${platformId}`);
@@ -86,6 +113,20 @@ class smsPlatform {
         }
         const normalized = (0, types_1.normalizeQuickSendParams)(param);
         return this._gateway.quickSend(normalized, callback);
+    }
+    send(param, callback) {
+        if (!this._gateway) {
+            throw new Error('Gateway not initialized. Call init() first.');
+        }
+        const normalized = (0, types_1.normalizeSendParams)(param);
+        return this._gateway.send(normalized, callback);
+    }
+    sendPersonalized(param, callback) {
+        if (!this._gateway) {
+            throw new Error('Gateway not initialized. Call init() first.');
+        }
+        const normalized = (0, types_1.normalizePersonalizedSendParams)(param);
+        return this._gateway.sendPersonalized(normalized, callback);
     }
     getGateway() {
         return this._gateway;

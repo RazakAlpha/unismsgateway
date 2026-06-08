@@ -1,5 +1,5 @@
 import { routeSms } from 'routemobilesms';
-import { ISmsGatewayDelegate, QuickSendParams, SendResult } from './types';
+import { ISmsGatewayDelegate, QuickSendParams, SendParams, PersonalizedSendParams, SendResult } from './types';
 
 export interface RouteSmsGatewayConfig {
     host: string;
@@ -10,13 +10,17 @@ export interface RouteSmsGatewayConfig {
     debug?: boolean;
 }
 
-function toRouteDestination(to: string | number): number | number[] {
+function toRouteDestination(to: string | number): number {
     if (typeof to === 'number') {
         return to;
     }
     const digits = String(to).replace(/\D/g, '');
     const n = Number(digits);
     return Number.isNaN(n) ? 0 : n;
+}
+
+function toRouteDestinations(to: (string | number)[]): number[] {
+    return to.map(toRouteDestination);
 }
 
 /**
@@ -49,7 +53,39 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
     }
 
     async quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult> {
-        this.log('quickSend params:', JSON.stringify(params));
+        return this._send(
+            [toRouteDestination(params.To)],
+            params.From,
+            params.Content,
+            params.Type,
+            callback,
+            'quickSend',
+            params
+        );
+    }
+
+    async send(params: SendParams, callback?: Function): Promise<SendResult> {
+        return this._send(
+            toRouteDestinations(params.To),
+            params.From,
+            params.Content,
+            params.Type,
+            callback,
+            'send',
+            params
+        );
+    }
+
+    private async _send(
+        destinations: number[],
+        from: string,
+        content: string,
+        type: number | undefined,
+        callback: Function | undefined,
+        logLabel: 'quickSend' | 'send',
+        logParams: QuickSendParams | SendParams
+    ): Promise<SendResult> {
+        this.log(`${logLabel} params:`, JSON.stringify(logParams));
 
         const sendParams: {
             From: string;
@@ -57,13 +93,13 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
             Content: string;
             config?: { type: number; dlr: number };
         } = {
-            From: params.From,
-            To: toRouteDestination(params.To),
-            Content: params.Content
+            From: from,
+            To: destinations.length === 1 ? destinations[0] : destinations,
+            Content: content
         };
 
-        if (params.Type !== undefined) {
-            sendParams.config = { type: params.Type, dlr: 0 };
+        if (type !== undefined) {
+            sendParams.config = { type, dlr: 0 };
         }
 
         let result: SendResult;
@@ -71,7 +107,7 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
         try {
             const raw = await routeSms.sendAsync(sendParams);
 
-            this.log('quickSend raw response:', JSON.stringify(raw));
+            this.log(`${logLabel} raw response:`, JSON.stringify(raw));
 
             if (raw === undefined || raw === null) {
                 result = {
@@ -80,20 +116,23 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
                     data: null
                 };
             } else if (Array.isArray(raw) && raw.length > 0) {
+                const allOk = raw.every(item => item.status === 'successful');
                 const first = raw[0] as {
                     status?: string;
                     id?: string;
                     code?: string;
                     message?: string;
                 };
-                const ok = first.status === 'successful';
+                const failed = raw.filter(item => item.status !== 'successful');
                 result = {
-                    success: ok,
+                    success: allOk,
                     messageId: first.id,
                     data: raw,
-                    error: ok
+                    error: allOk
                         ? undefined
-                        : `Route SMS Error [${first.code ?? 'unknown'}]: ${first.message ?? 'Send failed'}`
+                        : failed.length === raw.length
+                            ? `Route SMS Error [${first.code ?? 'unknown'}]: ${first.message ?? 'Send failed'}`
+                            : `Route SMS: ${failed.length} of ${raw.length} destinations failed`
                 };
             } else {
                 result = {
@@ -106,7 +145,7 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
             const errorMessage =
                 error instanceof Error ? error.message : String(error);
 
-            this.log('quickSend error:', errorMessage);
+            this.log(`${logLabel} error:`, errorMessage);
 
             result = {
                 success: false,
@@ -115,12 +154,21 @@ export class RouteSmsGateway implements ISmsGatewayDelegate {
             };
         }
 
-        this.log('quickSend result:', JSON.stringify(result));
+        this.log(`${logLabel} result:`, JSON.stringify(result));
 
         if (callback) {
             callback(result);
         }
 
         return result;
+    }
+
+    async sendPersonalized(
+        _params: PersonalizedSendParams,
+        _callback?: Function
+    ): Promise<SendResult> {
+        throw new Error(
+            'Route Mobile does not support sendPersonalized(). Use send() with the same content for all recipients.'
+        );
     }
 }

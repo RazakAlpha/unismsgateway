@@ -35,30 +35,31 @@ import { init, getSmsPlatform, reset, smsPlatform } from 'unismsgateway';
 ### `IgatewaySettings`
 
 
-| Field        | Type            | Description                            |
-| ------------ | --------------- | -------------------------------------- |
-| `platformId` | `'route' \| 'hubtel' \| 'nest'` | Which gateway to use. |
-| `param`      | `IgatewayParam` | Provider-specific options (see below). |
+| Field        | Type                          | Description                            |
+| ------------ | ----------------------------- | -------------------------------------- |
+| `platformId` | `'route' | 'hubtel' | 'nest'` | Which gateway to use.                  |
+| `param`      | `IgatewayParam`               | Provider-specific options (see below). |
 
 
 ### `IgatewayParam` (all fields optional except what your `platformId` requires)
 
 
-| Field          | Type      | Used by         | Description                                                            |
-| -------------- | --------- | --------------- | ---------------------------------------------------------------------- |
-| `username`     | `string`  | `route`         | Route Mobile account username. **Required** for `route`.               |
-| `password`     | `string`  | `route`         | Route Mobile account password. **Required** for `route`.               |
-| `host`         | `string`  | `route`, `nest` | API host. See per-gateway defaults below.                              |
-| `port`         | `number`  | `route`         | TCP port for Route Mobile. Default: `8080`.                            |
-| `protocol`     | `'http' \| 'https'` | `route`, `nest` | HTTPS or HTTP to the provider API.                         |
-| `clientId`     | `string`  | `hubtel`        | Hubtel client ID. **Required** for `hubtel`.                           |
-| `clientSecret` | `string`  | `hubtel`        | Hubtel client secret. **Required** for `hubtel`.                       |
-| `apiKey`       | `string`  | `nest`          | SMSOnlineGH API key (`Authorization: key …`). **Required** for `nest`. |
-| `debug`        | `boolean` | all             | If `true`, the active gateway logs each request/response to the console (prefix `[unismsgateway:…]`). Off by default. |
-| `keepAlive`    | `boolean` | `nest`          | Enable HTTP keep-alive connection pooling. Reuses TCP/TLS sockets across calls, eliminating per-request handshake overhead. Stale-socket errors are recovered automatically via `retries`. Default: `true`. |
-| `timeout`      | `number`  | `nest`          | Request deadline in milliseconds. The request is aborted with an `ETIMEDOUT` error if the server does not respond within this window. Default: `10000`. |
-| `maxSockets`   | `number`  | `nest`          | Maximum concurrent sockets in the keep-alive pool. Default: `10`. |
-| `retries`      | `number`  | `nest`          | Automatic retry attempts on transient socket errors (`ECONNRESET`, `ECONNABORTED`, `EPIPE`, `ETIMEDOUT`). Default: `1`. |
+| Field          | Type               | Used by         | Description                                                                                                                                                                                                 |
+| -------------- | ------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `username`     | `string`           | `route`         | Route Mobile account username. **Required** for `route`.                                                                                                                                                    |
+| `password`     | `string`           | `route`         | Route Mobile account password. **Required** for `route`.                                                                                                                                                    |
+| `host`         | `string`           | `route`, `nest` | API host. See per-gateway defaults below.                                                                                                                                                                   |
+| `port`         | `number`           | `route`         | TCP port for Route Mobile. Default: `8080`.                                                                                                                                                                 |
+| `protocol`     | `'http' | 'https'` | `route`, `nest` | HTTPS or HTTP to the provider API.                                                                                                                                                                          |
+| `clientId`     | `string`           | `hubtel`        | Hubtel client ID. **Required** for `hubtel`.                                                                                                                                                                |
+| `clientSecret` | `string`           | `hubtel`        | Hubtel client secret. **Required** for `hubtel`.                                                                                                                                                            |
+| `apiKey`       | `string`           | `nest`          | SMSOnlineGH API key (`Authorization: key …`). **Required** for `nest`.                                                                                                                                      |
+| `debug`        | `boolean`          | all             | If `true`, the active gateway logs each request/response to the console (prefix `[unismsgateway:…]`). Off by default.                                                                                       |
+| `keepAlive`    | `boolean`          | `nest`          | Enable HTTP keep-alive connection pooling. Reuses TCP/TLS sockets across calls, eliminating per-request handshake overhead. Stale-socket errors are recovered automatically via `retries`. Default: `true`. |
+| `timeout`      | `number`           | `nest`          | Request deadline in milliseconds. The request is aborted with an `ETIMEDOUT` error if the server does not respond within this window. Default: `10000`.                                                     |
+| `maxSockets`   | `number`           | `nest`          | Maximum concurrent sockets in the keep-alive pool. Default: `10`.                                                                                                                                           |
+| `retries`      | `number`           | `nest`          | Automatic retry attempts on transient socket errors (`ECONNRESET`, `ECONNABORTED`, `EPIPE`, `ETIMEDOUT`). Default: `1`.                                                                                     |
+| `deliveryCallback` | `{ url: string; accept?: 'application/json' \| 'application/xml' }` | `nest` | Optional SMSOnlineGH [delivery push](https://dev.smsonlinegh.com/docs/v5/http/rest/messaging/delivery_push.html) webhook. When set, every `quickSend` and `send` includes a `callback` block in the send payload. `accept` defaults to `application/json`. Receiving webhook POSTs is your app's responsibility. |
 
 
 Validation runs in `smsPlatform` when the instance is constructed: missing required fields for the chosen `platformId` throw `Error` with a clear message.
@@ -83,11 +84,11 @@ There are **two separate contexts**. Use the section that matches what you are d
 Nothing is read from the environment unless **you** wire it. Required fields are determined only by `platformId`:
 
 
-| `platformId` | Required in `param`        | Optional in `param` (defaults in this library)                                                |
-| ------------ | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`), `debug`, `keepAlive` (default `true`), `timeout` (default `10000` ms), `maxSockets` (default `10`), `retries` (default `1`) |
-| `hubtel`     | `clientId`, `clientSecret` | `debug`                                                                                       |
-| `route`      | `username`, `password`     | `host` (default `rslr.connectbind.com`), `protocol` (default `http`), `port` (default `8080`), `debug` |
+| `platformId` | Required in `param`        | Optional in `param` (defaults in this library)                                                                                                                                                    |
+| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nest`       | `apiKey`                   | `host` (default `api.smsonlinegh.com`), `protocol` (default `https`), `debug`, `keepAlive` (default `true`), `timeout` (default `10000` ms), `maxSockets` (default `10`), `retries` (default `1`), `deliveryCallback` (optional delivery push webhook) |
+| `hubtel`     | `clientId`, `clientSecret` | `host` (default `sms.hubtel.com`), `protocol` (default `https`), `debug`, `keepAlive` (default `true`), `timeout` (default `10000` ms), `maxSockets` (default `10`), `retries` (default `1`) |
+| `route`      | `username`, `password`     | `host` (default `rslr.connectbind.com`), `protocol` (default `http`), `port` (default `8080`), `debug`                                                                                            |
 
 
 **Suggested env names for your app** (optional; you can rename them). Credential keys (`NEST_`*, `HUBTEL_`*, `ROUTE_*`) match [live test](#live-integration-test-environment-variables) and `.env.example`. Platform selection differs: the test script requires `GATEWAY_PLATFORM` (or `TEST_ALL`); in your app you choose any name (the example below uses `SMS_PLATFORM_ID`):
@@ -98,6 +99,8 @@ Nothing is read from the environment unless **you** wire it. Required fields are
 | `NEST_API_KEY`         | `apiKey`                   | `nest`                        |
 | `NEST_HOST`            | `host`                     | optional for `nest`           |
 | `NEST_PROTOCOL`        | `protocol`                 | optional for `nest`           |
+| `NEST_DELIVERY_CALLBACK_URL` | `deliveryCallback.url` | optional for `nest`           |
+| `NEST_DELIVERY_CALLBACK_ACCEPT` | `deliveryCallback.accept` | optional for `nest` (`application/json` or `application/xml`; default `application/json`) |
 | `HUBTEL_CLIENT_ID`     | `clientId`                 | `hubtel`                      |
 | `HUBTEL_CLIENT_SECRET` | `clientSecret`             | `hubtel`                      |
 | `ROUTE_USERNAME`       | `username`                 | `route`                       |
@@ -132,7 +135,13 @@ const paramByPlatform = {
   nest: {
     apiKey: process.env.NEST_API_KEY,
     host: process.env.NEST_HOST,
-    protocol: process.env.NEST_PROTOCOL
+    protocol: process.env.NEST_PROTOCOL,
+    deliveryCallback: process.env.NEST_DELIVERY_CALLBACK_URL
+      ? {
+          url: process.env.NEST_DELIVERY_CALLBACK_URL,
+          accept: process.env.NEST_DELIVERY_CALLBACK_ACCEPT
+        }
+      : undefined
   }
 };
 
@@ -167,6 +176,8 @@ The script `scripts/test-live.ts` loads `.env` (copy from `.env.example`) and ex
 | `NEST_API_KEY`  | **Yes**   | Maps to `param.apiKey`.                       |
 | `NEST_HOST`     | No        | Overrides default host `api.smsonlinegh.com`. |
 | `NEST_PROTOCOL` | No        | Overrides default `https`.                    |
+| `NEST_DELIVERY_CALLBACK_URL` | No | Maps to `param.deliveryCallback.url`. When set, sends include SMSOnlineGH delivery push callback info. |
+| `NEST_DELIVERY_CALLBACK_ACCEPT` | No | Maps to `param.deliveryCallback.accept` (`application/json` or `application/xml`; default `application/json`). |
 
 
 `**hubtel`**
@@ -193,12 +204,16 @@ The script `scripts/test-live.ts` loads `.env` (copy from `.env.example`) and ex
 #### Live send (optional; all gateways)
 
 
-| Variable       | Required?                     | Purpose                                                                                                            |
-| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `TEST_SEND`    | No (default: do not send)     | Set to `true` to call `quickSend()` and send a real SMS. If unset or not `true`, only init and balance checks run. |
-| `TEST_FROM`    | **Yes** when `TEST_SEND=true` | `QuickSendParams.From`.                                                                                            |
-| `TEST_TO`      | **Yes** when `TEST_SEND=true` | `QuickSendParams.To`.                                                                                              |
-| `TEST_CONTENT` | No                            | Message body; if omitted, the script uses a built-in default string.                                               |
+| Variable            | Required?                     | Purpose                                                                                                            |
+| ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `TEST_SEND`         | No (default: do not send)     | Set to `true` to run live send checks. If unset or not `true`, only init and balance checks run.                   |
+| `TEST_SEND_METHOD`  | No (default: `quickSend`)     | `quickSend` — single recipient via `quickSend()`. `send` — multiple recipients via `send()` (`nest`, `route`). `both` — run both. `sendPersonalized` — personalised bulk via `sendPersonalized()` (`nest` only). |
+| `TEST_FROM`         | **Yes** when `TEST_SEND=true` | Sender ID (`From` / `from`).                                                                                       |
+| `TEST_TO`           | **Yes** when method is `quickSend` or `both` | Single recipient for `quickSend()`. Also used as a one-element array for `send()` when `TEST_TO_MULTI` is omitted. |
+| `TEST_TO_MULTI`     | Recommended for `send` / `both` | Comma-separated MSISDNs for `send()` (e.g. `233...,233...`). Required when `TEST_SEND_METHOD=send` unless `TEST_TO` is set. |
+| `TEST_CONTENT`      | No                            | Message body; if omitted, the script uses a built-in default string.                                               |
+| `TEST_PERSONALIZED_TEMPLATE` | No (default template used) | Message template for `sendPersonalized()` (e.g. `Hello {$name}. Your balance is ${$balance}.`). |
+| `TEST_PERSONALIZED_DESTINATIONS` | **Yes** when `TEST_SEND_METHOD=sendPersonalized` | JSON array of `{ to, values }` objects, e.g. `[{"to":"233...","values":["Name",123]}]`. |
 
 
 ---
@@ -212,10 +227,10 @@ The script `scripts/test-live.ts` loads `.env` (copy from `.env.example`) and ex
   - Returns the `smsPlatform` instance.
 2. `**smsPlatform` constructor** (in `src/lib/platform.ts`):
   - Runs `validateSettings()` (platform id + required `param` fields for that id).
-  - Calls `createGateway()` to instantiate the underlying provider (`routeSms`, `HubtelSms`, or `NestSmsGateway`).
+  - Calls `createGateway()` to instantiate the underlying provider (`RouteSmsGateway`, `HubtelSmsGateway`, or `NestSmsGateway`).
 3. `**getSmsPlatform(): smsPlatform | null`**: Returns the current singleton, or `null` if `reset()` was called and no new `init()` has run.
 
-There is **no async bootstrap**; after `init()` returns, `quickSend` is ready.
+There is **no async bootstrap**; after `init()` returns, `quickSend`, `send`, and `sendPersonalized` are ready.
 
 ---
 
@@ -246,8 +261,8 @@ const c = unisms.init({ platformId: 'nest', param: { apiKey: 'key-2' } });
 | `platformId` | Provider           | Package / implementation                |
 | ------------ | ------------------ | --------------------------------------- |
 | `route`      | Route Mobile       | `routemobilesms`                        |
-| `hubtel`     | Hubtel SMS (Ghana) | `hubtel-sms-extended`                   |
-| `nest`       | SMSOnlineGH        | Built-in REST client (`NestSmsGateway`) |
+| `hubtel`     | Hubtel SMS (Ghana) | Built-in REST client (`HubtelSmsGateway`) |
+| `nest`       | SMSOnlineGH        | Built-in REST client (`NestSmsGateway`)   |
 
 
 **Configuration vs env:** Required and optional `param` fields are summarized in [Library usage: required and optional param fields](#library-usage-required-and-optional-param-fields). The live test runner’s `.env` names are listed in [Live integration test environment variables](#live-integration-test-environment-variables).
@@ -285,7 +300,22 @@ const gateway = unisms.init({
 
 **Required `param`:** `clientId`, `clientSecret`.
 
-No `host` / `protocol` in `IgatewayParam` for Hubtel in this library; configuration follows `hubtel-sms-extended`.
+**Optional `param`:**
+
+
+| Field        | Default if omitted    | Notes                                                                 |
+| ------------ | --------------------- | --------------------------------------------------------------------- |
+| `host`       | `sms.hubtel.com`      | Override for legacy hosts (e.g. `smsc.hubtel.com`) if needed.         |
+| `protocol`   | `'https'`             |                                                                       |
+| `keepAlive`  | `true`                | Set to `false` to open a fresh TCP/TLS connection per request.        |
+| `timeout`    | `10000`               | Milliseconds before the request is aborted with `ETIMEDOUT`.          |
+| `maxSockets` | `10`                  | Maximum sockets held open in the keep-alive pool.                     |
+| `retries`    | `1`                   | Retry count for transient errors (`ECONNRESET`, `ECONNABORTED`, etc). |
+
+
+Requests use `POST` to `https://sms.hubtel.com/v1/messages/...` with `Authorization: Basic` (Base64 of `clientId:clientSecret`). `quickSend()` hits `/v1/messages/send`; `send()` uses `/v1/messages/batch/simple/send`; `sendPersonalized()` expands `{$variable}` placeholders locally then posts to `/v1/messages/batch/personalized/send`.
+
+`HubtelSmsGateway` also exposes `getMessageStatus(messageId)` and `getBatchStatus(batchId)` via `getGateway()` for delivery status polling.
 
 ```javascript
 const gateway = unisms.init({
@@ -295,6 +325,9 @@ const gateway = unisms.init({
     clientSecret: 'your-client-secret'
   }
 });
+
+// Optional: release pooled sockets on shutdown
+gateway.getGateway().destroy();
 ```
 
 ### `nest` (SMSOnlineGH)
@@ -312,6 +345,7 @@ const gateway = unisms.init({
 | `timeout`    | `10000`               | Milliseconds before the request is aborted with `ETIMEDOUT`.          |
 | `maxSockets` | `10`                  | Maximum sockets held open in the keep-alive pool.                     |
 | `retries`    | `1`                   | Retry count for transient errors (`ECONNRESET`, `ECONNABORTED`, etc). |
+| `deliveryCallback` | — | Optional delivery push webhook. When set, each send request includes `callback: { url, accept }` per [SMSOnlineGH delivery push docs](https://dev.smsonlinegh.com/docs/v5/http/rest/messaging/delivery_push.html). `accept` defaults to `application/json`. This library registers the URL with the provider only; your app must expose and handle the webhook endpoint. |
 
 
 Requests use `POST` to path `/v5/<endpoint>` (e.g. send: `message/sms/send`, balance: `account/balance`). Authorization header: `Authorization: key <apiKey>`.
@@ -329,6 +363,113 @@ const gateway = unisms.init({
 // On app shutdown:
 gateway.getGateway().destroy();
 ```
+
+**Example with delivery push callback:**
+
+```javascript
+const gateway = unisms.init({
+  platformId: 'nest',
+  param: {
+    apiKey: 'your-api-key',
+    deliveryCallback: {
+      url: 'https://your-app.example/sms/delivery',
+      accept: 'application/json' // optional; default application/json
+    }
+  }
+});
+```
+
+SMSOnlineGH POSTs delivery status to that URL asynchronously after the operator reports delivery. The initial `quickSend` response still only reflects submission status.
+
+**Delivery push callback payload**
+
+A delivery push notification uses the same response shape as a [Message Delivery Report](https://dev.smsonlinegh.com/docs/v5/http/rest/messaging/delivery_report.html), but applies to **one destination only**. Expect a single item in `data.destinations` (even when the original send had multiple recipients).
+
+The `Content-Type` of the POST matches your configured `deliveryCallback.accept` (`application/json` by default, or `application/xml`).
+
+**JSON** (`accept: 'application/json'`):
+
+```json
+{
+  "handshake": {
+    "id": 0,
+    "label": "HSHK_OK"
+  },
+  "data": {
+    "batch": "cfa19ba67f94fbd6b19c067b0c87ed4f",
+    "delivery": true,
+    "category": "sms",
+    "text": "Hello world!",
+    "type": 0,
+    "sender": "Hello",
+    "personalised": false,
+    "destinationsCount": 2,
+    "destinations": [
+      {
+        "to": "233246314915",
+        "id": "093841e5-578a-41f4-5f5f-2f3910886c12",
+        "country": "Ghana",
+        "messageCount": 1,
+        "submitDateTime": "2021-09-29 21:57:44",
+        "reportDateTime": "2021-09-29 21:57:48",
+        "status": {
+          "id": 2110,
+          "label": "DS_DELIVERED"
+        }
+      }
+    ]
+  }
+}
+```
+
+**XML** (`accept: 'application/xml'`):
+
+```xml
+<response>
+  <handshake>
+    <id>0</id>
+    <label>HSHK_OK</label>
+  </handshake>
+  <data>
+    <batch>cfa19ba67f94fbd6b19c067b0c87ed4f</batch>
+    <category>sms</category>
+    <delivery>true</delivery>
+    <text>Hello world!</text>
+    <type>0</type>
+    <sender>Hello</sender>
+    <personalised>false</personalised>
+    <destinationsCount>2</destinationsCount>
+    <destinations>
+      <item>
+        <to>233246314915</to>
+        <id>093841e5-578a-41f4-5f5f-2f3910886c12</id>
+        <country>Ghana</country>
+        <messageCount>1</messageCount>
+        <submitDateTime>2021-09-29 21:57:44</submitDateTime>
+        <reportDateTime>2021-09-29 21:57:48</reportDateTime>
+        <status>
+          <id>2110</id>
+          <label>DS_DELIVERED</label>
+        </status>
+      </item>
+    </destinations>
+  </data>
+</response>
+```
+
+Fields your webhook handler will typically use:
+
+| Path | Description |
+| ---- | ----------- |
+| `handshake.label` | `HSHK_OK` when the payload is valid. |
+| `data.batch` | Batch ID from the original send (matches `SendResult.messageId` / `data.batch` from `quickSend`). |
+| `data.destinations[0].to` | Recipient phone number for this delivery event. |
+| `data.destinations[0].id` | Per-destination message ID. |
+| `data.destinations[0].status.id` / `status.label` | Delivery outcome (e.g. `2110` / `DS_DELIVERED`). |
+| `data.destinations[0].submitDateTime` | When the message was submitted to the operator. |
+| `data.destinations[0].reportDateTime` | When the operator reported this delivery status. |
+
+Respond with HTTP `200` promptly so SMSOnlineGH does not retry the push. Persist and process the payload asynchronously if your handler does heavy work.
 
 **Example with performance tuning:**
 
@@ -361,20 +502,24 @@ console.log(balance.balance, balance.model);
 
 ## Sending messages
 
+Use **`quickSend()`** for a single recipient. Use **`send()`** when the active gateway supports batch delivery to multiple numbers in one request (`nest`, `hubtel`, `route`). Use **`sendPersonalized()`** when each recipient needs a customised message from one template (`nest`, `hubtel`). On **`hubtel`**, `sendPersonalized()` expands `{$variable}` placeholders client-side before calling Hubtel's batch personalized API.
+
 ### `QuickSendParams`
 
-| Field     | Type     | Required | Description                                                            |
-| --------- | -------- | -------- | ---------------------------------------------------------------------- |
-| `From`    | `string` | yes      | Sender ID or label.                                                    |
-| `To`      | `string \| number` | yes      | Recipient MSISDN or number.                                            |
-| `Content` | `string` | yes      | Message body.                                                          |
-| `Type`    | `number` | no       | Message type; **nest** maps this to request body `type` (default `0`). |
 
-**camelCase:** You may pass **`from`**, **`to`**, **`content`**, and **`type`** instead of the PascalCase names above. Many JavaScript projects use camelCase; if you pass only `content` and `Content` is missing, the SMSOnlineGH (`nest`) API receives no message body and may return handshake **1305** (`MV_ERR_MESSAGE` — missing or invalid message body). The library normalizes both conventions before calling the gateway.
+| Field     | Type              | Required | Description                                                            |
+| --------- | ----------------- | -------- | ---------------------------------------------------------------------- |
+| `From`    | `string`          | yes      | Sender ID or label.                                                    |
+| `To`      | `string | number` | yes      | Recipient MSISDN or number.                                            |
+| `Content` | `string`          | yes      | Message body.                                                          |
+| `Type`    | `number`          | no       | Message type; **nest** maps this to request body `type` (default `0`). |
+
+
+**camelCase:** You may pass `**from`**, `**to**`, `**content**`, and `**type**` instead of the PascalCase names above. Many JavaScript projects use camelCase; if you pass only `content` and `Content` is missing, the SMSOnlineGH (`nest`) API receives no message body and may return handshake **1305** (`MV_ERR_MESSAGE` — missing or invalid message body). The library normalizes both conventions before calling the gateway.
 
 ### `quickSend(params, callback?)`
 
-Returns `Promise<SendResult>`. Optional `callback` is invoked with the same result when the promise completes. The `params` argument accepts **`QuickSendParams`** (PascalCase) or **`QuickSendParamsCamel`** (`{ from, to, content, type? }`). See **`normalizeQuickSendParams`** in the public API if you need the same mapping outside `quickSend`.
+Returns `Promise<SendResult>`. Optional `callback` is invoked with the same result when the promise completes. The `params` argument accepts `**QuickSendParams`** (PascalCase) or `**QuickSendParamsCamel**` (`{ from, to, content, type? }`). See `**normalizeQuickSendParams**` in the public API if you need the same mapping outside `quickSend`.
 
 `**SendResult`:**
 
@@ -388,9 +533,9 @@ Returns `Promise<SendResult>`. Optional `callback` is invoked with the same resu
 }
 ```
 
-When `success` is `false`, always read **`error`** — it contains a human-readable reason (provider status codes, API handshake labels, network errors, and so on). For **`nest`**, if the API rejects the send but returns JSON, **`data`** is the **full parsed response body** (not only `response.data`), so you can inspect `handshake` and any provider fields. For HTTP errors, `data` may be the raw response body string. **`statusCode`** is set when the adapter knows the HTTP status (for example nest).
+When `success` is `false`, always read `**error**` — it contains a human-readable reason (provider status codes, API handshake labels, network errors, and so on). For `**nest**`, if the API rejects the send but returns JSON, `**data**` is the **full parsed response body** (not only `response.data`), so you can inspect `handshake` and any provider fields. For HTTP errors, `data` may be the raw response body string. `**statusCode`** is set when the adapter knows the HTTP status (for example nest).
 
-**Debugging:** Set `param.debug: true` when calling `init()` to print request URLs, bodies, and responses to the console. The live test script enables debug for the `nest` platform so you can trace `quickSend` and `getBalance` without changing application code.
+**Debugging:** Set `param.debug: true` when calling `init()` to print request URLs, bodies, and responses to the console. The live test script enables debug for the `nest` platform so you can trace `quickSend`, `send`, and `getBalance` without changing application code.
 
 **Example**
 
@@ -433,6 +578,102 @@ gateway.quickSend(
 );
 ```
 
+### `SendParams`
+
+Same fields as `QuickSendParams`, except `To` is an array of recipients:
+
+
+| Field     | Type                    | Required | Description                                                            |
+| --------- | ----------------------- | -------- | ---------------------------------------------------------------------- |
+| `From`    | `string`                | yes      | Sender ID or label.                                                    |
+| `To`      | `(string \| number)[]`  | yes      | One or more recipient MSISDNs or numbers.                              |
+| `Content` | `string`                | yes      | Message body (same content to all recipients).                         |
+| `Type`    | `number`                | no       | Message type; **nest** maps this to request body `type` (default `0`). |
+
+
+**camelCase:** Pass `{ from, to, content, type? }` where `to` is an array. See `normalizeSendParams`.
+
+**Platform behaviour**
+
+| Platform | `send()` support | Notes |
+| -------- | ---------------- | ----- |
+| `nest`   | Yes              | One HTTP request with `destinations: string[]`. `messageId` is the batch ID; per-recipient status is in `data.destinations`. |
+| `route`  | Yes              | Passes `To` as `number[]` to Route Mobile. `success` is true only when every destination succeeds; partial failures set `error` with a summary. |
+| `hubtel` | Yes              | One HTTP request via Hubtel batch simple API. `messageId` is the `batchId`; per-recipient IDs are in `data`. |
+
+### `send(params, callback?)`
+
+Returns `Promise<SendResult>`. Same result shape and callback semantics as `quickSend`. Accepts `SendParams` (PascalCase) or `SendParamsCamel` (`{ from, to: [...], content, type? }`).
+
+**Example (`nest`)**
+
+```javascript
+const result = await gateway.send({
+  From: 'TEST',
+  To: ['0246314915', '0242053072'],
+  Content: 'Hello from unismsgateway!',
+  Type: 0
+});
+
+if (result.success) {
+  console.log('Batch:', result.messageId);
+  console.log('Destinations:', result.data?.destinations);
+}
+```
+
+### Personalized bulk send
+
+Use **`sendPersonalized()`** when each recipient should receive a **different** message body derived from one template. Placeholders in the template use SMSOnlineGH variable syntax (`{$name}`, `${$balance}`, etc.); per-recipient substitution values are passed as positional arrays in the same order variables appear in the template. See [SMSOnlineGH Personalised Messaging](https://dev.smsonlinegh.com/docs/v5/http/rest/messaging/sms_personalised.html?tabs=json%2Ctabid-1).
+
+### `PersonalizedSendParams`
+
+| Field           | Type                      | Required | Description                                                                 |
+| --------------- | ------------------------- | -------- | --------------------------------------------------------------------------- |
+| `From`          | `string`                  | yes      | Sender ID or label.                                                         |
+| `Content`       | `string`                  | yes      | Message template with `{$variable}` placeholders.                           |
+| `Destinations`  | `PersonalizedRecipient[]` | yes      | One entry per recipient with `To` and positional `Values`.                  |
+| `Type`          | `number`                  | no       | Message type; **nest** maps this to request body `type` (default `0`).      |
+
+Each `PersonalizedRecipient`:
+
+| Field    | Type                    | Required | Description                                      |
+| -------- | ----------------------- | -------- | ------------------------------------------------ |
+| `To`     | `string \| number`      | yes      | Recipient MSISDN or number.                      |
+| `Values` | `(string \| number)[]`  | yes      | Substitution values in template variable order.  |
+
+**camelCase:** Pass `{ from, content, destinations: [{ to, values }], type? }`. See `normalizePersonalizedSendParams`.
+
+**Platform behaviour**
+
+| Platform | `sendPersonalized()` support | Notes |
+| -------- | ---------------------------- | ----- |
+| `nest`   | Yes                          | One HTTP request with `destinations: [{ number, values }]`. Same endpoint as `send()`; `messageId` is the batch ID; per-recipient status is in `data.destinations`. |
+| `route`  | No                           | Throws — use `send()` with the same content for all recipients. |
+| `hubtel` | Yes                          | Expands `{$var}` template locally, then one HTTP request to Hubtel batch personalized API. `messageId` is the `batchId`. |
+
+### `sendPersonalized(params, callback?)`
+
+Returns `Promise<SendResult>`. Same result shape and callback semantics as `send`. Accepts `PersonalizedSendParams` (PascalCase) or `PersonalizedSendParamsCamel`.
+
+**Example (`nest`)**
+
+```javascript
+const result = await gateway.sendPersonalized({
+  From: 'TEST',
+  Content: 'Hello {$name}. Your balance is ${$balance}.',
+  Destinations: [
+    { To: '0246314915', Values: ['Daniel', 560.45] },
+    { To: '0242053072', Values: ['Emmanuel', 348.56] }
+  ],
+  Type: 0
+});
+
+if (result.success) {
+  console.log('Batch:', result.messageId);
+  console.log('Destinations:', result.data?.destinations);
+}
+```
+
 ---
 
 ## Testing (live integration)
@@ -455,7 +696,7 @@ npm run test:live
 
 1. **Init** — Builds `param` from your `.env`, calls `init()`, and checks configuration validation.
 2. **Balance** — For `nest` and `hubtel` only, calls `getBalance()` when the adapter supports it. `route` skips this step.
-3. **Send** — **Opt-in.** By default no SMS is sent. Set `TEST_SEND=true` and the send-related variables listed in [Live integration test environment variables](#live-integration-test-environment-variables).
+3. **Send** — **Opt-in.** By default no SMS is sent. Set `TEST_SEND=true` and the send-related variables listed in [Live integration test environment variables](#live-integration-test-environment-variables). Use `TEST_SEND_METHOD` to choose `quickSend` (default), `send` (multi-destination on `nest`/`hubtel`/`route`), `both`, or `sendPersonalized` (`nest`/`hubtel`). For `route`, `sendPersonalized()` rejection is verified when that method is selected.
 
 Full variable reference (selection, per-gateway credentials, live send): [Live integration test environment variables](#live-integration-test-environment-variables). The script loads `.env` via `dotenv` (dev dependency). Exit code is `0` when all checks pass, non-zero if a step fails or no platform is selected.
 
@@ -464,25 +705,34 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 ## API reference
 
 
-| Export                     | Description                                                          |
-| -------------------------- | -------------------------------------------------------------------- |
-| `init(settings)`           | Create and register the singleton `smsPlatform`, return it.          |
-| `getSmsPlatform()`         | Current `smsPlatform` or `null` after `reset()` and before `init()`. |
-| `reset()`                  | Clear the singleton.                                                 |
-| `smsPlatform`              | Class type for typing/advanced use.                                  |
-| `QuickSendParamsInput`     | Union: PascalCase `QuickSendParams` or camelCase `QuickSendParamsCamel`. |
-| `QuickSendParamsCamel`     | `{ from, to, content, type? }` for `quickSend`.                      |
+| Export                     | Description                                                                |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `init(settings)`           | Create and register the singleton `smsPlatform`, return it.                |
+| `getSmsPlatform()`         | Current `smsPlatform` or `null` after `reset()` and before `init()`.       |
+| `reset()`                  | Clear the singleton.                                                       |
+| `smsPlatform`              | Class type for typing/advanced use.                                        |
+| `QuickSendParamsInput`     | Union: PascalCase `QuickSendParams` or camelCase `QuickSendParamsCamel`.   |
+| `QuickSendParamsCamel`     | `{ from, to, content, type? }` for `quickSend`.                            |
 | `normalizeQuickSendParams` | Maps input to canonical `QuickSendParams` (throws if body/sender missing). |
+| `SendParamsInput`          | Union: PascalCase `SendParams` or camelCase `SendParamsCamel`.             |
+| `SendParamsCamel`          | `{ from, to: (string\|number)[], content, type? }` for `send`.             |
+| `normalizeSendParams`      | Maps input to canonical `SendParams` (throws if body/sender/recipients missing). |
+| `PersonalizedSendParamsInput` | Union: PascalCase `PersonalizedSendParams` or camelCase `PersonalizedSendParamsCamel`. |
+| `PersonalizedSendParamsCamel` | `{ from, content, destinations: [{ to, values }], type? }` for `sendPersonalized`. |
+| `PersonalizedRecipient`    | `{ To, Values }` — one personalised destination. |
+| `normalizePersonalizedSendParams` | Maps input to canonical `PersonalizedSendParams` (throws if template/sender/destinations missing). |
 
 
 `**smsPlatform` instance methods**
 
 
-| Method                         | Returns               | Description                                    |
-| ------------------------------ | --------------------- | ---------------------------------------------- |
-| `init()`                       | `ISmsGateway`         | Returns `this` (facade).                       |
-| `quickSend(params, callback?)` | `Promise<SendResult>` | Normalizes PascalCase or camelCase params, then delegates to the active gateway. |
-| `getGateway()`                 | `ISmsGateway`         | Underlying adapter (for nest: `getBalance()`). |
+| Method                         | Returns               | Description                                                                      |
+| ------------------------------ | --------------------- | -------------------------------------------------------------------------------- |
+| `init()`                       | `ISmsGateway`         | Returns `this` (facade).                                                         |
+| `quickSend(params, callback?)` | `Promise<SendResult>` | Single recipient. Normalizes PascalCase or camelCase params.                     |
+| `send(params, callback?)`      | `Promise<SendResult>` | Multiple recipients (`To` array). Supported on `nest`, `hubtel`, and `route`. |
+| `sendPersonalized(params, callback?)` | `Promise<SendResult>` | Personalised bulk send (`Destinations` with per-recipient `Values`). Supported on `nest` and `hubtel`; `route` throws. |
+| `getGateway()`                 | `ISmsGateway`         | Underlying adapter (e.g. nest `getBalance()`, hubtel `getMessageStatus()`).    |
 
 
 ---
@@ -491,6 +741,10 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 
 ### 1.6.0
 
+- **New:** Built-in **`hubtel`** REST client (`HubtelSmsGateway`) replaces `hubtel-sms-extended`. Uses official `https://sms.hubtel.com` API with keep-alive pooling, timeouts, and retries.
+- **New:** `send()` and `sendPersonalized()` on **`hubtel`** via Hubtel batch APIs. `sendPersonalized()` expands `{$variable}` placeholders client-side before sending.
+- **New:** `sendPersonalized()` for personalised bulk SMS on **`nest`** (SMSOnlineGH template variables + per-destination `values`). **`route`** throws — use `send()` or `quickSend()` instead.
+- **New:** `send()` for multi-destination SMS on **`nest`** (SMSOnlineGH `destinations` array), **`hubtel`** (batch simple), and **`route`** (Route Mobile `number[]`). `To` is `(string | number)[]`.
 - **Performance (`nest`):** The `NestSmsGateway` now uses a persistent keep-alive connection pool (`https.Agent`) instead of opening a fresh TCP + TLS connection on every request. Subsequent sends to the same host reuse warm sockets, eliminating the per-call handshake overhead (~100–300 ms per request).
 - **Reliability (`nest`):** Stale-socket errors (`ECONNRESET`, `ECONNABORTED`, `EPIPE`, `ETIMEDOUT`) that can occur when a pooled socket is reused after the server has closed it are automatically retried on a fresh connection. The default retry count is `1`; configure via `param.retries`.
 - **Timeout support (`nest`):** Requests that stall mid-flight are now aborted after a configurable deadline (`param.timeout`, default `10 000 ms`) instead of hanging indefinitely.
@@ -499,12 +753,15 @@ Full variable reference (selection, per-gateway credentials, live send): [Live i
 - **Internal (`nest`):** Response chunks are now accumulated as `Buffer[]` and concatenated once at the end, avoiding repeated string re-allocation per chunk. The POST body is serialised to a `Buffer` upfront so `Content-Length` reads `Buffer.length` (O(1)) rather than rescanning the string.
 
 ### 1.5.2
+
 - **Build:** TypeScript `rootDir` is now `./src` with `include: ["src/**/*.ts"]` (scripts stay `ts-node`-only). Previously the compiler also picked up `scripts/test-live.ts`, inferred a project root above `src/`, and emitted library code under `dist/src/lib/…` while published entrypoints load `dist/lib/…` — leaving **stale or missing** `dist/lib/nest-gateway.js` (wrong `requestBody` shape). The published `dist/` layout now matches `package.json` `main` and always rebuilds gateway files from current sources.
 
 ### 1.5.1
+
 - **Fix (`nest` / all gateways):** `quickSend` now accepts **camelCase** (`from`, `to`, `content`, `type`) as well as PascalCase (`From`, `To`, `Content`, `Type`). Passing only camelCase previously left `Content` undefined, so the nest JSON body omitted `text` and the API returned handshake **1305** (missing or invalid message body). Validation errors throw clear messages when body or sender is empty after trim.
 
 ### 1.5.0
+
 - **Fix (`nest`):** `quickSend` now reliably works in long-running processes (servers, workers). Node's global HTTP agent reuses keep-alive sockets across calls; when the provider closes an idle socket server-side, the next `quickSend` that writes a request body received `write ECONNABORTED` while `getBalance` (no body) appeared to work fine. Fixed by setting `agent: false` on each request so every call opens a fresh connection rather than reusing a potentially stale one from the pool.
 
 ---

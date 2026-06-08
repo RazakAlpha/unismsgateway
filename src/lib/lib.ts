@@ -7,6 +7,15 @@ import {
     QuickSendParamsInput,
     QuickSendParamsCamel,
     normalizeQuickSendParams,
+    SendParams,
+    SendParamsInput,
+    SendParamsCamel,
+    normalizeSendParams,
+    PersonalizedSendParams,
+    PersonalizedSendParamsInput,
+    PersonalizedSendParamsCamel,
+    PersonalizedRecipient,
+    normalizePersonalizedSendParams,
     SendResult,
     ISmsGateway
 } from './platform';
@@ -36,6 +45,15 @@ export {
     QuickSendParamsInput,
     QuickSendParamsCamel,
     normalizeQuickSendParams,
+    SendParams,
+    SendParamsInput,
+    SendParamsCamel,
+    normalizeSendParams,
+    PersonalizedSendParams,
+    PersonalizedSendParamsInput,
+    PersonalizedSendParamsCamel,
+    PersonalizedRecipient,
+    normalizePersonalizedSendParams,
     SendResult,
     ISmsGateway
 };

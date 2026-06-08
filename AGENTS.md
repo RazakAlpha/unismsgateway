@@ -48,7 +48,6 @@ npm install
 ### Import Style
 ```typescript
 // External modules first
-import { HubtelSms } from 'hubtel-sms-extended';
 import { routeSms } from 'routemobilesms';
 import * as https from 'https';
 
@@ -78,6 +77,7 @@ src/
     platform.ts      # Core smsPlatform class and re-exports
     types.ts         # All TypeScript interfaces and types
     nest-gateway.ts  # SMSOnlineGH REST API implementation
+    hubtel-gateway.ts # Hubtel SMS REST API implementation
 scripts/
   test-live.ts       # Live integration test runner (npm test)
 dist/                # Compiled output (do not edit)
@@ -105,6 +105,20 @@ interface SendResult {
     error?: string;
 }
 
+interface PersonalizedRecipient {
+    To: string | number;
+    Values: (string | number)[];
+}
+
+interface PersonalizedSendParams {
+    From: string;
+    Content: string;  // template with {$variable} placeholders
+    Destinations: PersonalizedRecipient[];
+    Type?: number;
+}
+// sendPersonalized also accepts camelCase { from, content, destinations: [{ to, values }], type? };
+// see normalizePersonalizedSendParams in types.ts.
+
 interface IgatewaySettings {
     platformId: PlatformId;
     param: IgatewayParam;
@@ -119,11 +133,17 @@ interface IgatewayParam {
     clientSecret?: string;
     apiKey?: string;        // For nest/smsOnlineGH
     protocol?: 'http' | 'https';
+    deliveryCallback?: {    // nest only — SMSOnlineGH delivery push webhook
+        url: string;
+        accept?: 'application/json' | 'application/xml';
+    };
 }
 
 interface ISmsGateway {
     init(): ISmsGateway;
     quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult>;
+    send(params: SendParams, callback?: Function): Promise<SendResult>;
+    sendPersonalized(params: PersonalizedSendParams, callback?: Function): Promise<SendResult>;
     getBalance?(): Promise<any>;
 }
 ```
@@ -133,7 +153,7 @@ interface ISmsGateway {
 | Platform ID | Package | Required Params |
 |-------------|---------|-----------------|
 | `route` | routemobilesms | username, password, host |
-| `hubtel` | hubtel-sms-extended | clientId, clientSecret |
+| `hubtel` | Built-in REST API | clientId, clientSecret |
 | `nest` | Built-in REST API | apiKey |
 
 ### Adding New SMS Gateways

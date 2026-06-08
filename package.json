@@ -1,6 +1,6 @@
 {
   "name": "unismsgateway",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "A unified SMS gateway library that brings access to multiple SMS gateways under a single API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -46,7 +46,6 @@
     "typescript": "^4.5.4"
   },
   "dependencies": {
-    "hubtel-sms-extended": "^1.0.2",
     "routemobilesms": "^1.0.4"
   }
 }

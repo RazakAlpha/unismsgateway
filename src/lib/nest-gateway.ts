@@ -3,9 +3,12 @@ import * as http from 'http';
 import {
     ISmsGateway,
     QuickSendParams,
+    SendParams,
+    PersonalizedSendParams,
     SendResult,
     NestSmsConfig,
-    NestSendResponse
+    NestSendResponse,
+    NestDeliveryCallbackConfig
 } from './types';
 
 const DEFAULT_HOST = 'api.smsonlinegh.com';
@@ -35,6 +38,7 @@ interface ResolvedNestConfig {
     maxSockets: number;
     retries: number;
     keepAlive: boolean;
+    deliveryCallback?: NestDeliveryCallbackConfig;
 }
 
 interface MakeRequestResult {
@@ -61,7 +65,8 @@ export class NestSmsGateway implements ISmsGateway {
             timeout: config.timeout ?? DEFAULT_TIMEOUT,
             maxSockets: config.maxSockets ?? DEFAULT_MAX_SOCKETS,
             retries: config.retries ?? DEFAULT_RETRIES,
-            keepAlive: config.keepAlive !== false
+            keepAlive: config.keepAlive !== false,
+            deliveryCallback: config.deliveryCallback
         };
         this._agent = this._createAgent();
     }
@@ -241,14 +246,41 @@ export class NestSmsGateway implements ISmsGateway {
     }
 
     async quickSend(params: QuickSendParams, callback?: Function): Promise<SendResult> {
-        const requestBody = {
-            text: params.Content,
-            type: params.Type ?? 0,
-            sender: params.From,
-            destinations: [String(params.To)]
-        };
+        return this._sendToDestinations(
+            [String(params.To)],
+            params.From,
+            params.Content,
+            params.Type,
+            callback,
+            'quickSend',
+            params
+        );
+    }
 
-        this.log('quickSend params:', JSON.stringify(params));
+    async send(params: SendParams, callback?: Function): Promise<SendResult> {
+        return this._sendToDestinations(
+            params.To.map(String),
+            params.From,
+            params.Content,
+            params.Type,
+            callback,
+            'send',
+            params
+        );
+    }
+
+    async sendPersonalized(
+        params: PersonalizedSendParams,
+        callback?: Function
+    ): Promise<SendResult> {
+        const requestBody = this._buildPersonalizedMessageRequestBody(
+            params.Destinations,
+            params.From,
+            params.Content,
+            params.Type
+        );
+
+        this.log('sendPersonalized params:', JSON.stringify(params));
 
         let result: SendResult;
 
@@ -258,42 +290,7 @@ export class NestSmsGateway implements ISmsGateway {
                 requestBody
             );
 
-            const handshakeId = response.handshake?.id;
-            const handshakeLabel = response.handshake?.label;
-            const handshakeOk = Number(handshakeId) === 0;
-            const responseData = response.data ?? null;
-
-            const batchId =
-                responseData && typeof responseData === 'object'
-                    ? (responseData as { batch?: string }).batch
-                    : undefined;
-            const firstDest =
-                responseData && typeof responseData === 'object'
-                    ? (
-                          responseData as {
-                              destinations?: { id?: string }[];
-                          }
-                      ).destinations?.[0]
-                    : undefined;
-
-            let errorMsg: string | undefined;
-            if (!handshakeOk) {
-                if (handshakeLabel) {
-                    errorMsg = `API Error [code ${handshakeId}]: ${handshakeLabel}`;
-                } else if (handshakeId !== undefined && handshakeId !== null) {
-                    errorMsg = `API Error: handshake code=${handshakeId}`;
-                } else {
-                    errorMsg = `Unexpected API response: ${JSON.stringify(response)}`;
-                }
-            }
-
-            result = {
-                success: handshakeOk,
-                messageId: batchId || firstDest?.id,
-                data: handshakeOk ? responseData : response,
-                error: errorMsg,
-                statusCode
-            };
+            result = this._parseNestSendResponse(statusCode, response);
         } catch (error: unknown) {
             const httpErr = error as HttpError;
             const errorMessage =
@@ -307,7 +304,171 @@ export class NestSmsGateway implements ISmsGateway {
             };
         }
 
-        this.log('quickSend result:', JSON.stringify(result));
+        this.log('sendPersonalized result:', JSON.stringify(result));
+
+        if (callback) {
+            callback(result);
+        }
+
+        return result;
+    }
+
+    private _buildMessageRequestBody(
+        destinations: string[],
+        from: string,
+        content: string,
+        type?: number
+    ): {
+        text: string;
+        type: number;
+        sender: string;
+        destinations: string[];
+        callback?: { url: string; accept: string };
+    } {
+        const requestBody: {
+            text: string;
+            type: number;
+            sender: string;
+            destinations: string[];
+            callback?: { url: string; accept: string };
+        } = {
+            text: content,
+            type: type ?? 0,
+            sender: from,
+            destinations
+        };
+
+        if (this._cfg.deliveryCallback?.url) {
+            requestBody.callback = {
+                url: this._cfg.deliveryCallback.url,
+                accept: this._cfg.deliveryCallback.accept ?? 'application/json'
+            };
+        }
+
+        return requestBody;
+    }
+
+    private _buildPersonalizedMessageRequestBody(
+        destinations: PersonalizedSendParams['Destinations'],
+        from: string,
+        content: string,
+        type?: number
+    ): {
+        text: string;
+        type: number;
+        sender: string;
+        destinations: { number: string; values: (string | number)[] }[];
+        callback?: { url: string; accept: string };
+    } {
+        const requestBody: {
+            text: string;
+            type: number;
+            sender: string;
+            destinations: { number: string; values: (string | number)[] }[];
+            callback?: { url: string; accept: string };
+        } = {
+            text: content,
+            type: type ?? 0,
+            sender: from,
+            destinations: destinations.map(d => ({
+                number: String(d.To),
+                values: d.Values
+            }))
+        };
+
+        if (this._cfg.deliveryCallback?.url) {
+            requestBody.callback = {
+                url: this._cfg.deliveryCallback.url,
+                accept: this._cfg.deliveryCallback.accept ?? 'application/json'
+            };
+        }
+
+        return requestBody;
+    }
+
+    private _parseNestSendResponse(
+        statusCode: number,
+        response: NestSendResponse
+    ): SendResult {
+        const handshakeId = response.handshake?.id;
+        const handshakeLabel = response.handshake?.label;
+        const handshakeOk = Number(handshakeId) === 0;
+        const responseData = response.data ?? null;
+
+        const batchId =
+            responseData && typeof responseData === 'object'
+                ? (responseData as { batch?: string }).batch
+                : undefined;
+        const firstDest =
+            responseData && typeof responseData === 'object'
+                ? (
+                      responseData as {
+                          destinations?: { id?: string }[];
+                      }
+                  ).destinations?.[0]
+                : undefined;
+
+        let errorMsg: string | undefined;
+        if (!handshakeOk) {
+            if (handshakeLabel) {
+                errorMsg = `API Error [code ${handshakeId}]: ${handshakeLabel}`;
+            } else if (handshakeId !== undefined && handshakeId !== null) {
+                errorMsg = `API Error: handshake code=${handshakeId}`;
+            } else {
+                errorMsg = `Unexpected API response: ${JSON.stringify(response)}`;
+            }
+        }
+
+        return {
+            success: handshakeOk,
+            messageId: batchId || firstDest?.id,
+            data: handshakeOk ? responseData : response,
+            error: errorMsg,
+            statusCode
+        };
+    }
+
+    private async _sendToDestinations(
+        destinations: string[],
+        from: string,
+        content: string,
+        type: number | undefined,
+        callback: Function | undefined,
+        logLabel: 'quickSend' | 'send',
+        logParams: QuickSendParams | SendParams
+    ): Promise<SendResult> {
+        const requestBody = this._buildMessageRequestBody(
+            destinations,
+            from,
+            content,
+            type
+        );
+
+        this.log(`${logLabel} params:`, JSON.stringify(logParams));
+
+        let result: SendResult;
+
+        try {
+            const { statusCode, body: response } = await this.makeRequest(
+                'message/sms/send',
+                requestBody
+            );
+
+            result = this._parseNestSendResponse(statusCode, response);
+        } catch (error: unknown) {
+            const httpErr = error as HttpError;
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
+
+            result = {
+                success: false,
+                error: errorMessage,
+                statusCode: httpErr.statusCode,
+                data: httpErr.rawBody !== undefined ? httpErr.rawBody : null
+            };
+        }
+
+        this.log(`${logLabel} result:`, JSON.stringify(result));
 
         if (callback) {
             callback(result);
